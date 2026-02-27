@@ -1,4 +1,4 @@
-// src/components/layout/Header.jsx
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -77,7 +77,7 @@ const Header = () => {
               {isLoginDropdownOpen && (
                 <ul className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-100">
                   <li>
-                    <Link to="/admin/login" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                    <Link to="/admin/signin" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
                       <FaUserShield className="text-primary" size={14} /> Admin
                     </Link>
                   </li>
@@ -104,6 +104,11 @@ const Header = () => {
               </button>
               {isSignupDropdownOpen && (
                 <ul className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-100">
+                  <li>
+                    <Link to="/admin/signup" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                      <FaUserShield className="text-primary" size={14} /> Admin
+                    </Link>
+                  </li>
                   <li>
                     <Link to="/student/signup" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
                       <FaUserGraduate className="text-primary" size={14} /> Student
@@ -142,7 +147,7 @@ const Header = () => {
               <li className="pt-4 border-t border-gray-200">
                 <p className="text-sm text-gray-500 mb-2">Login as:</p>
                 <div className="flex flex-col gap-2">
-                  <Link to="/admin/login" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
+                  <Link to="/admin/signin" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
                     <FaUserShield className="text-primary" size={14} /> Admin
                   </Link>
                   <Link to="/student/login" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
@@ -156,9 +161,14 @@ const Header = () => {
 
               <li className="pt-4">
                 <p className="text-sm text-gray-500 mb-2">Sign up as:</p>
-                <Link to="/student/signup" className="flex items-center gap-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-                  <FaUserGraduate size={14} /> Student
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link to="/admin/signup" className="flex items-center gap-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors mb-2">
+                    <FaUserShield size={14} /> Admin
+                  </Link>
+                  <Link to="/student/signup" className="flex items-center gap-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
+                    <FaUserGraduate size={14} /> Student
+                  </Link>
+                </div>
               </li>
             </ul>
           </nav>
