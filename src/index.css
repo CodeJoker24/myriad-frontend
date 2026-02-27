@@ -1,0 +1,89 @@
+/* index.css - for Tailwind v4 */
+@import "tailwindcss";
+
+/* Define your custom theme values */
+@theme {
+  --color-primary: #2563eb;
+  --color-secondary: #10b981;
+  --color-dark: #1e293b;
+  --color-light: #f8fafc;
+  --color-gray: #64748b;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply text-[#1e293b] bg-[#f8fafc] font-sans;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-bold leading-tight;
+  }
+}
+
+@layer components {
+  .container {
+    @apply w-[92%] max-w-7xl mx-auto;
+  }
+  
+  .section {
+    @apply py-16 md:py-24;
+  }
+  
+  .section-header {
+    @apply text-center mb-16;
+  }
+  
+  .section-header h2 {
+    @apply text-3xl md:text-4xl font-bold mb-4;
+  }
+  
+  .section-header p {
+    @apply text-[#64748b] max-w-2xl mx-auto;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-[#2563eb] to-[#10b981] bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+}
+/* Animation delays */
+.delay-100 {
+  animation-delay: 100ms;
+}
+.delay-200 {
+  animation-delay: 200ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-400 {
+  animation-delay: 400ms;
+}
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+}
