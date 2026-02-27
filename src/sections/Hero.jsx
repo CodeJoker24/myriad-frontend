@@ -1,35 +1,57 @@
+
 import heroBg from '../assets/images/hero_overlay.jpeg'; 
 
 const Hero = () => {
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const headerOffset = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
-    <section className="relative h-screen min-h-[800px] flex items-center pt-20">
-      
+    <section className="relative h-screen min-h-[600px] flex items-center">
+     
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-secondary/80 z-10" />
         <img 
           src={heroBg} 
-          alt="Myriad Academy" 
+          alt="Myriad Academy Campus" 
           className="w-full h-full object-cover"
         />
+        
+        <div className="absolute inset-0 bg-primary/60" /> 
       </div>
       
-      
-      <div className="relative z-20 container mx-auto px-4 text-white">
-        <div className="max-w-3xl animate-fade-in-up">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+=
+      <div className="relative z-10 container mx-auto px-4">
+        <div className="max-w-3xl text-white">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 drop-shadow-lg">
             Shaping Future Leaders Through Innovative Education
           </h1>
-          <p className="text-lg md:text-xl mb-8 opacity-90">
+          <p className="text-lg md:text-xl mb-8 text-white/95 max-w-2xl drop-shadow">
             At Myriad Academy, we combine academic excellence with character development 
             to prepare students for the challenges of tomorrow's world.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <a href="/#admissions" className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all hover:-translate-y-1 shadow-lg text-center">
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={() => scrollToSection('admissions')}
+              className="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all hover:shadow-lg"
+            >
               Enroll Now
-            </a>
-            <a href="/#about" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary transition-all hover:-translate-y-1 text-center">
+            </button>
+            <button
+              onClick={() => scrollToSection('about')}
+              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary transition-all"
+            >
               Explore More
-            </a>
+            </button>
           </div>
         </div>
       </div>
