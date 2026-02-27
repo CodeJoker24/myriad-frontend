@@ -50,8 +50,8 @@ const Header = () => {
           <div className="w-10 h-10 bg-primary text-white rounded-lg flex items-center justify-center">
             <FaGraduationCap size={24} />
           </div>
-          <span className="hidden sm:inline text-gray-900">MYRIAD</span>
-          <span className="hidden sm:inline text-primary">ACADEMY</span>
+          <span className="sm:inline text-gray-900">MYRIAD</span>
+          <span className="sm:inline text-primary">ACADEMY</span>
         </Link>
 
         <nav className="hidden lg:block">
