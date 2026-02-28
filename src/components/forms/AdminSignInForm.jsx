@@ -1,30 +1,63 @@
-
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { data, Link, useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const AdminSignInForm = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const Login = async(x)=>{
+    x.preventDefault();
     setLoading(true);
-    setTimeout(() => setLoading(false), 2000);
-  };
+
+    if(!email || !password){
+      Swal.fire({
+         icon: "error",
+          title: "Oops...",
+          text : "All fields are required! Please fill them out.",
+          confirmButtonColor: "#3B82F6",
+      })
+      setLoading(false);
+      return;
+    }
+
+    try{
+      const response = await axios.post("http://127.0.0.1:4000/api/auth_routes/login", {email, password})
+
+      localStorage.setItem("user", JSON.stringify(response.data.user))
+      localStorage.setItem("session", JSON.stringify(response.data.session))
+      setLoading(false);
+      navigate("/admin/dashboard");
+    }
+    catch(error){
+       let err = "Error connecting to the server!";
+       if(error.response?.data?.error){
+      Swal.fire({
+      icon: "error",
+      title: 'Warning',
+      text: error.response?.data?.error
+      })
+      setLoading(false);
+      return;
+    }
+    Swal.fire({
+    icon: "error",
+    title: 'Warning',
+    text: err
+    });
+    setLoading(false);
+    return;
+    }
+  }
+
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
+    <form className="w-full max-w-md mx-auto" onSubmit={Login}>
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">Admin Sign In</h2>
 
@@ -37,12 +70,8 @@ const AdminSignInForm = () => {
               </div>
               <input
                 type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                placeholder="admin@myriadacademy.com"
-                required
+                onChange={(e)=>setEmail(e.target.value)}
               />
             </div>
           </div>
@@ -55,12 +84,8 @@ const AdminSignInForm = () => {
               </div>
               <input
                 type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
                 className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                placeholder="••••••••"
-                required
+                onChange={(e)=>setPassword(e.target.value)}
               />
               <button
                 type="button"
@@ -79,6 +104,7 @@ const AdminSignInForm = () => {
           >
             {loading ? <FaSpinner className="animate-spin" /> : 'Sign In'}
           </button>
+          <p className="text-center text-gray-600">Don't have an account? <Link to="/admin/signup" className="text-primary hover:underline">Signup</Link></p>
         </div>
       </div>
     </form>
