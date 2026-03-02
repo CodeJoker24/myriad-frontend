@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import AdminSignIn from './pages/admin/SignIn';
 import AdminSignUp from './pages/admin/SignUp';
-import { AdminDashboard } from './pages/admin/AdminDashboard';
+import  AdminDashboard  from './pages/admin/AdminDashboard';
 // import Login from './pages/Login';
 // import Signup from './pages/Signup';
 // import AdminDashboard from './pages/dashboard/AdminDashboard';
