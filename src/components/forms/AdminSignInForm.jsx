@@ -1,4 +1,4 @@
-import { use, useState } from 'react';
+import { useState } from 'react';
 import { FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { data, Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -28,7 +28,16 @@ const AdminSignInForm = () => {
 
     try{
       const response = await axios.post("http://127.0.0.1:4000/api/auth_routes/login", {email, password})
-
+      const {user, session} = response.data;
+      if(user.role !=='admin'){
+        setLoading(false);
+        Swal.fire({
+      icon: "error",
+      title: "Access Denied",
+      text: "This login is for Admins only!",
+    });
+    return;
+      }
       localStorage.setItem("user", JSON.stringify(response.data.user))
       localStorage.setItem("session", JSON.stringify(response.data.session))
       setLoading(false);
