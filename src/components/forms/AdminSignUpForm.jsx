@@ -1,8 +1,8 @@
   import { useState } from 'react';
   import { FaUser, FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
   import Swal from "sweetalert2";
-  import axios from "axios"
   import { Link, useNavigate } from "react-router-dom"
+  import API from '../../api';
 
   const AdminSignUpForm = () => {
     const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@
 
 
         try{
-          const response = await axios.post("http://127.0.0.1:4000/api/auth_routes/signup", {name, email, password, role:"admin", adminSecret})
+          const response = await API.post("/api/auth_routes/signup", {name, email, password, role:"admin", adminSecret})
           Swal.fire({
             icon:"success",
             title: "success",

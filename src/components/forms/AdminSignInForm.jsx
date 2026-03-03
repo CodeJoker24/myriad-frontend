@@ -3,6 +3,7 @@ import { FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import API from '../../api';
 
 const AdminSignInForm = () => {
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,7 @@ const AdminSignInForm = () => {
     }
 
     try{
-      const response = await axios.post("http://127.0.0.1:4000/api/auth_routes/login", {email, password})
+      const response = await API.post("/api/auth_routes/login", {email, password})
       const {user, session} = response.data;
       if(user.role !=='admin'){
         setLoading(false);
