@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, FaSchool, FaUsers, FaChalkboardTeacher, FaBook, FaClipboardList, FaSignOutAlt, FaChevronDown, FaGlobe } from 'react-icons/fa';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -40,22 +40,32 @@ const AdminDashboard = () => {
     { name: 'Result Management', icon: <FaClipboardList />, path: '/admin/dashboard/results' },
   ];
 
-  
   const isActive = (path) => {
     return location.pathname === path;
   };
 
+  const handleLinkClick = () => {
+    // Close sidebar completely on all devices when a link is clicked
+    setSidebarOpen(false);
+  };
+
+  // Update navbar left position when sidebar state changes
+  useEffect(() => {
+    // This forces a re-render to update the navbar position
+  }, [sidebarOpen]);
+
   return (
     <div className="min-h-screen bg-gray-100">
-      
-      <div className={`fixed top-0 left-0 h-full bg-white shadow-xl transition-all duration-300 z-30 ${
-        sidebarOpen ? 'w-64' : 'w-20'
-      }`}>
-    
+      {/* Sidebar - completely hidden when closed */}
+      <div className={`
+        fixed top-0 left-0 h-full bg-white shadow-xl transition-all duration-300 z-30
+        ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
+      `}>
+        {/* Logo Area */}
         <div className="h-16 flex items-center justify-between px-4 border-b">
-          {sidebarOpen && (
-            <span className="text-xl font-bold text-primary">MYRIAD ADMIN</span>
-          )}
+          <span className="text-xl font-bold text-primary">
+            MYRIAD ADMIN
+          </span>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"
@@ -64,12 +74,13 @@ const AdminDashboard = () => {
           </button>
         </div>
 
-       
+        {/* Navigation Links */}
         <nav className="mt-6 px-2 h-[calc(100vh-4rem)] overflow-y-auto">
           {sidebarLinks.map((link, index) => (
             <Link
               key={index}
               to={link.path}
+              onClick={handleLinkClick}
               className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-lg transition-colors ${
                 isActive(link.path)
                   ? 'bg-primary text-white' 
@@ -77,28 +88,44 @@ const AdminDashboard = () => {
               }`}
             >
               <span className="text-lg">{link.icon}</span>
-              {sidebarOpen && <span className="text-sm font-medium">{link.name}</span>}
+              <span className="text-sm font-medium">{link.name}</span>
             </Link>
           ))}
 
-        
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-4 py-3 mt-4 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors`}
+            className="w-full flex items-center gap-3 px-4 py-3 mt-4 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
           >
             <FaSignOutAlt className="text-lg" />
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
+            <span className="text-sm font-medium">Logout</span>
           </button>
         </nav>
       </div>
 
-      
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
-        
-        <header className="h-16 bg-white shadow-sm fixed right-0 top-0 z-20" style={{ left: sidebarOpen ? '16rem' : '5rem' }}>
+      {/* Overlay for all devices when sidebar is open */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content Area */}
+      <div className="transition-all duration-300">
+        {/* Navbar */}
+        <header className="h-16 bg-white shadow-sm fixed right-0 top-0 z-10 left-0">
           <div className="h-full px-6 flex items-center justify-between">
-           
-            <div className="flex-1 max-w-md">
+            {/* Menu button to open sidebar */}
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"
+            >
+              <FaBars />
+            </button>
+
+            {/* Search Bar */}
+            <div className="flex-1 max-w-md ml-4">
               <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -109,8 +136,9 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {/* Right Section */}
             <div className="flex items-center gap-4">
-              
+              {/* Notifications */}
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
@@ -134,7 +162,7 @@ const AdminDashboard = () => {
                 )}
               </div>
 
-          
+              {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -172,9 +200,8 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        
+        {/* Page Content */}
         <main className="p-6 mt-16">
-          
           <Outlet />
         </main>
       </div>
