@@ -31,7 +31,7 @@ export const Profile = () => {
             </div>
             <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
             <p className="text-gray-500 text-sm mb-4">{user.email}</p>
-            <p className="text-xs text-gray-400">Member since 2024</p>
+            
           </div>
         </div>
 
