@@ -45,11 +45,11 @@ const AdminDashboard = () => {
   };
 
   const handleLinkClick = () => {
-    // Close sidebar completely on all devices when a link is clicked
+   
     setSidebarOpen(false);
   };
 
-  // Update navbar left position when sidebar state changes
+ 
   useEffect(() => {
     // This forces a re-render to update the navbar position
   }, [sidebarOpen]);

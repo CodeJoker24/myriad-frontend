@@ -10,6 +10,7 @@ import { MyWards } from './pages/admin/dashboard/MyWards';
 import { Profile } from './pages/admin/dashboard/Profile';
 import { ClassroomManagement } from './pages/admin/dashboard/ClassroomManagement';
 import { ResultManagement } from './pages/admin/dashboard/ResultManagement';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -18,7 +19,13 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/admin/signin" element={<AdminSignIn />} />
         <Route path="/admin/signup" element={<AdminSignUp />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />}>
+        
+        {/* Protected Route - wraps all dashboard routes */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }>
           <Route index element={<DashboardHome />} />
           <Route path="school-management" element={<SchoolManagement />} />
           <Route path="site-management" element={<SiteManagement />} />
