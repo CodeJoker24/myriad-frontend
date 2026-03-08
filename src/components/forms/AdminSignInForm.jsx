@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import axios from 'axios';
 import API from '../../api';
 
 const AdminSignInForm = () => {
