@@ -29,15 +29,20 @@ export const Profile = () => {
 
   }
 
-  const handleSave = async () => {
+ const handleSave = async () => {
   try {
+    // Make sure dateOfBirth is in YYYY-MM-DD or null
+    const formattedDate = formData.dateOfBirth
+      ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
+      : null;
+
     const payload = {
       email: user.email,
-      name: formData.name,
-      phone: formData.phone,
-      dateOfBirth: formData.dateOfBirth,
-      stateOfOrigin: formData.stateOfOrigin,
-      address: formData.address
+      name: formData.name || null,
+      phone: formData.phone || null,
+      dateOfBirth: formattedDate,
+      stateOfOrigin: formData.stateOfOrigin || null,
+      address: formData.address || null
     };
 
     const res = await API.put("/api/auth_routes/update_profile", payload);
@@ -51,6 +56,9 @@ export const Profile = () => {
 
       const updatedUser = { ...user, ...payload };
       localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      // Clear password fields
+      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
     } else {
       Swal.fire({
         icon: "error",
