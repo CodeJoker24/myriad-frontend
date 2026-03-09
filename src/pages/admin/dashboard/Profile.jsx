@@ -31,7 +31,7 @@ export const Profile = () => {
 
  const handleSave = async () => {
   try {
-    // Format date properly for Supabase
+    
     const formattedDate = formData.dateOfBirth
       ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
       : null;
@@ -45,7 +45,7 @@ export const Profile = () => {
       address: formData.address || null
     };
 
-    // Update profile first
+   
     const res = await API.put("/api/auth_routes/update_profile", profilePayload);
 
     if (!res.data.success) {
@@ -57,11 +57,10 @@ export const Profile = () => {
       return;
     }
 
-    // Update localStorage
+   
     const updatedUser = { ...user, ...profilePayload };
     localStorage.setItem("user", JSON.stringify(updatedUser));
 
-    // Now handle password update if user entered something
     if (formData.newPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
         Swal.fire({
@@ -100,7 +99,7 @@ export const Profile = () => {
       text: "All changes saved successfully"
     });
 
-    // Clear password fields
+    
     setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
 
   } catch (err) {
