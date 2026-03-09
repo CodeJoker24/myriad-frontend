@@ -31,7 +31,7 @@ export const Profile = () => {
 
  const handleSave = async () => {
   try {
-    // Make sure dateOfBirth is in YYYY-MM-DD or null
+    
     const formattedDate = formData.dateOfBirth
       ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
       : null;
@@ -57,7 +57,7 @@ export const Profile = () => {
       const updatedUser = { ...user, ...payload };
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
-      // Clear password fields
+      
       setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
     } else {
       Swal.fire({
