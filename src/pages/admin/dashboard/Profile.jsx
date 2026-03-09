@@ -83,7 +83,7 @@ export const Profile = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Profile Card */}
+        
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-md p-6 text-center">
             <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -95,14 +95,14 @@ export const Profile = () => {
           </div>
         </div>
 
-        {/* Edit Profile Form */}
+        
         <div className="lg:col-span-2 space-y-6">
-          {/* Personal Information */}
+          
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-6">Personal Information</h2>
 
             <div className="space-y-5">
-              {/* Name */}
+             
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                 <div className="relative">
@@ -119,7 +119,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* Email */}
+              =
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                 <div className="relative">
@@ -136,7 +136,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* Phone */}
+     
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                 <div className="relative">
@@ -154,7 +154,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* Date of Birth */}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
                 <div className="relative">
@@ -171,7 +171,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* State of Origin */}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">State of Origin</label>
                 <div className="relative">
@@ -226,7 +226,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* Address */}
+            
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
                 <div className="relative">
@@ -246,12 +246,12 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Change Password Section */}
+          
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-6">Change Password</h2>
 
             <div className="space-y-5">
-              {/* Current Password */}
+             
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
                 <div className="relative">
@@ -276,7 +276,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* New Password */}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
                 <div className="relative">
@@ -301,7 +301,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* Confirm New Password */}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
                 <div className="relative">
@@ -326,7 +326,7 @@ export const Profile = () => {
                 </div>
               </div>
 
-              {/* Password Requirements */}
+              
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm font-medium text-gray-700 mb-2">Password Requirements:</p>
                 <ul className="text-xs text-gray-500 space-y-1 list-disc list-inside">
@@ -339,7 +339,7 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Save Button */}
+          
           <div className="flex justify-end">
             <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2" onClick={handleSave}>
               <FaSave /> Save All Changes
