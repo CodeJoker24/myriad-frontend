@@ -1,19 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaSave, FaLock, FaCalendarAlt, FaGlobe, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { supabase } from '../../../db';
+import Swal from "sweetalert2";
+import API from '../../../api';
+
 
 export const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  const user = JSON.parse(localStorage.getItem('user')) || {
-    name: 'Admin User',
-    email: 'admin@myriad.com',
-    phone: '',
-    address: '',
-    stateOfOrigin: '',
-    dateOfBirth: ''
-  };
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+
+  const [formData, setFormData] = useState({
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    dateOfBirth: user.dateOfBirth || '',
+    stateOfOrigin: user.stateOfOrigin || '',
+    address: user.address || '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const handleChange = (e)=>{
+    const {name, value} = e.target;
+    setFormData(prev=>({...prev, [name]:value}))
+
+  }
+
+  const handleSave = async ()=>{
+    try{
+     if(formData.newPassword){
+      const res = await API.post("/api/auth_routes/check_password", {email:user.email, currentPassword:formData.currentPassword});
+
+      if(!res.data.success){
+        Swal.fire({
+          icon: "error",
+          title: "Incorrect Password",
+          text: "The current password you entered is wrong."
+        });
+        return;
+      }
+
+      if(formData.newPassword !== formData.confirmPassword){
+        Swal.fire({
+          icon: "error",
+          title: "Password Mismatch",
+          text: "New password and confirm password do not match."
+        });
+        return;
+      }
+     }
+
+     await API.put('/api/auth_routes/update', {...formData, email:user.email});
+
+     Swal.fire({
+      icon: "success",
+      title: "Profile Updated",
+      text: "Your profile has been updated successfully."
+     });
+      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+    }
+    catch(err){
+      Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text: err.response?.data?.message || err.message
+      });
+    }
+  }
 
   return (
     <div>
@@ -29,8 +86,8 @@ export const Profile = () => {
             <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaUser className="text-4xl text-primary" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
-            <p className="text-gray-500 text-sm mb-4">{user.email}</p>
+            <h2 className="text-xl font-bold text-gray-800">{formData.name}</h2>
+            <p className="text-gray-500 text-sm mb-4">{formData.email}</p>
             
           </div>
         </div>
@@ -51,8 +108,10 @@ export const Profile = () => {
                   </div>
                   <input
                     type="text"
-                    defaultValue={user.name}
+                    name="name"
+                    value={formData.name}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                    onChange={handleChange}
                   />
                 </div>
               </div>
@@ -66,7 +125,9 @@ export const Profile = () => {
                   </div>
                   <input
                     type="email"
-                    defaultValue={user.email}
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
                 </div>
@@ -81,7 +142,9 @@ export const Profile = () => {
                   </div>
                   <input
                     type="tel"
-                    defaultValue={user.phone}
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
                     placeholder="08012345678"
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
@@ -97,7 +160,9 @@ export const Profile = () => {
                   </div>
                   <input
                     type="date"
-                    defaultValue={user.dateOfBirth}
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
                 </div>
@@ -111,7 +176,9 @@ export const Profile = () => {
                     <FaGlobe className="text-gray-400" />
                   </div>
                   <select
-                    defaultValue={user.stateOfOrigin}
+                    value={formData.stateOfOrigin}
+                    name="stateOfOrigin"
+                    onChange={handleChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition appearance-none bg-white"
                   >
                     <option value="">Select state</option>
@@ -164,9 +231,11 @@ export const Profile = () => {
                     <FaMapMarkerAlt className="text-gray-400" />
                   </div>
                   <textarea
-                    defaultValue={user.address}
+                    name="address"
+                    value={formData.address}
                     placeholder="Enter your address"
                     rows="3"
+                    onChange={handleChange}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition resize-none"
                   />
                 </div>
@@ -190,6 +259,9 @@ export const Profile = () => {
                     type={showCurrentPassword ? 'text' : 'password'}
                     placeholder="Enter current password"
                     className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                    value={formData.currentPassword}
+                    name="currentPassword"
+                    onChange={handleChange}
                   />
                   <button
                     type="button"
@@ -210,7 +282,10 @@ export const Profile = () => {
                   </div>
                   <input
                     type={showNewPassword ? 'text' : 'password'}
+                    value={formData.newPassword}
+                    name="newPassword"
                     placeholder="Enter new password"
+                    onChange={handleChange}
                     className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
                   <button
@@ -232,6 +307,9 @@ export const Profile = () => {
                   </div>
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    name="confirmPassword"
+                    onChange={handleChange}
                     placeholder="Confirm new password"
                     className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
@@ -260,7 +338,7 @@ export const Profile = () => {
 
           {/* Save Button */}
           <div className="flex justify-end">
-            <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2">
+            <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2" onClick={handleSave}>
               <FaSave /> Save All Changes
             </button>
           </div>
