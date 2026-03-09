@@ -29,57 +29,43 @@ export const Profile = () => {
 
   }
 
-  const handleSave = async ()=>{
-    try{
-     if(formData.newPassword){
-      const res = await API.post("/api/auth_routes/check_password", {email:user.email, currentPassword:formData.currentPassword});
-
-      if(!res.data.success){
-        Swal.fire({
-          icon: "error",
-          title: "Incorrect Password",
-          text: "The current password you entered is wrong."
-        });
-        return;
-      }
-
-      if(formData.newPassword !== formData.confirmPassword){
-        Swal.fire({
-          icon: "error",
-          title: "Password Mismatch",
-          text: "New password and confirm password do not match."
-        });
-        return;
-      }
-     }
-
-     await API.put('/api/auth_routes/update_profile', {...formData, id:user.id});
-
-     Swal.fire({
-      icon: "success",
-      title: "Profile Updated",
-      text: "Your profile has been updated successfully."
-     });
-      const updatedUser = {
-      ...user,
+  const handleSave = async () => {
+  try {
+    const payload = {
+      email: user.email,
       name: formData.name,
       phone: formData.phone,
       dateOfBirth: formData.dateOfBirth,
       stateOfOrigin: formData.stateOfOrigin,
       address: formData.address
-      };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      
-      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
-    }
-    catch(err){
+    };
+
+    const res = await API.put("/api/auth_routes/update_profile", payload);
+
+    if (res.data.success) {
       Swal.fire({
-      icon: "error",
-      title: "Update Failed",
-      text: err.response?.data?.message || err.message
+        icon: "success",
+        title: "Profile Updated",
+        text: res.data.message
+      });
+
+      const updatedUser = { ...user, ...payload };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: res.data.error || "Something went wrong"
       });
     }
+  } catch (err) {
+    Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text: err.response?.data?.error || err.message
+    });
   }
+};
 
   return (
     <div>
