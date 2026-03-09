@@ -54,7 +54,7 @@ export const Profile = () => {
       }
      }
 
-     await API.put('/api/auth_routes/update', {...formData, email:user.email});
+     await API.put('/api/auth_routes/update_profile', {...formData, email:user.email});
 
      Swal.fire({
       icon: "success",
