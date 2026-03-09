@@ -31,12 +31,12 @@ export const Profile = () => {
 
  const handleSave = async () => {
   try {
-    
+    // Format date properly for Supabase
     const formattedDate = formData.dateOfBirth
       ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
       : null;
 
-    const payload = {
+    const profilePayload = {
       email: user.email,
       name: formData.name || null,
       phone: formData.phone || null,
@@ -45,27 +45,64 @@ export const Profile = () => {
       address: formData.address || null
     };
 
-    const res = await API.put("/api/auth_routes/update_profile", payload);
+    // Update profile first
+    const res = await API.put("/api/auth_routes/update_profile", profilePayload);
 
-    if (res.data.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Profile Updated",
-        text: res.data.message
-      });
-
-      const updatedUser = { ...user, ...payload };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      
-      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
-    } else {
+    if (!res.data.success) {
       Swal.fire({
         icon: "error",
         title: "Update Failed",
         text: res.data.error || "Something went wrong"
       });
+      return;
     }
+
+    // Update localStorage
+    const updatedUser = { ...user, ...profilePayload };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
+    // Now handle password update if user entered something
+    if (formData.newPassword) {
+      if (formData.newPassword !== formData.confirmPassword) {
+        Swal.fire({
+          icon: "error",
+          title: "Password Mismatch",
+          text: "New password and confirm password do not match"
+        });
+        return;
+      }
+
+      const passRes = await API.put("/api/auth_routes/update_password", {
+        email: user.email,
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword
+      });
+
+      if (passRes.data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Password Updated",
+          text: passRes.data.message
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Password Update Failed",
+          text: passRes.data.error || "Something went wrong"
+        });
+        return;
+      }
+    }
+
+    Swal.fire({
+      icon: "success",
+      title: "Profile Updated",
+      text: "All changes saved successfully"
+    });
+
+    // Clear password fields
+    setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+
   } catch (err) {
     Swal.fire({
       icon: "error",
