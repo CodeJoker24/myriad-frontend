@@ -1,6 +1,5 @@
 import { useState, useEffect} from 'react';
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaSave, FaLock, FaCalendarAlt, FaGlobe, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { supabase } from '../../../db';
 import Swal from "sweetalert2";
 import API from '../../../api';
 
@@ -54,13 +53,23 @@ export const Profile = () => {
       }
      }
 
-     await API.put('/api/auth_routes/update_profile', {...formData, email:user.email});
+     await API.put('/api/auth_routes/update_profile', {...formData, id:user.id});
 
      Swal.fire({
       icon: "success",
       title: "Profile Updated",
       text: "Your profile has been updated successfully."
      });
+      const updatedUser = {
+      ...user,
+      name: formData.name,
+      phone: formData.phone,
+      dateOfBirth: formData.dateOfBirth,
+      stateOfOrigin: formData.stateOfOrigin,
+      address: formData.address
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      
       setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
     }
     catch(err){
