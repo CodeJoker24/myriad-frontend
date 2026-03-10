@@ -30,30 +30,31 @@ export const Profile = () => {
     setFormData(prev=>({...prev, [name]:value}))
 
   }
-
- const handleSave = async () => {
+const handleSave = async () => {
   setLoading(true);
   let avatarUrl = user.avatar;
 
-if (image) {
-  const formDataImg = new FormData();
-  formDataImg.append("image", image);
-  formDataImg.append("email", user.email);
+  try {
+    // 1️⃣ Upload image if a new one is selected
+    if (image) {
+      try {
+        const formDataImg = new FormData();
+        formDataImg.append("image", image);
+        formDataImg.append("email", user.email);
 
-  const uploadRes = await API.post(
-    "/api/auth_routes/upload_profile_image",
-    formDataImg,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data"
+        const uploadRes = await API.post("/api/auth_routes/upload_profile_image", formDataImg);
+        avatarUrl = uploadRes.data.imageUrl;
+      } catch (imgErr) {
+        console.error("Image upload failed:", imgErr);
+        Swal.fire({
+          icon: "warning",
+          title: "Image Upload Failed",
+          text: "Profile and password updates will still proceed"
+        });
       }
     }
-  );
 
-  avatarUrl = uploadRes.data.imageUrl;
-}
-  try {
-    
+    // 2️⃣ Update profile (always runs)
     const formattedDate = formData.dateOfBirth
       ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
       : null;
@@ -64,43 +65,26 @@ if (image) {
       phone: formData.phone || null,
       dateOfBirth: formattedDate,
       stateOfOrigin: formData.stateOfOrigin || null,
-      address: formData.address || null
+      address: formData.address || null,
+      avatar: avatarUrl
     };
 
-   
     const res = await API.put("/api/auth_routes/update_profile", profilePayload);
 
     if (!res.data.success) {
-      Swal.fire({
-        icon: "error",
-        title: "Update Failed",
-        text: res.data.error || "Something went wrong"
-      });
+      Swal.fire({ icon: "error", title: "Profile Update Failed", text: res.data.error || "Something went wrong" });
       return;
     }
 
-   
-  const updatedUser = {
-  ...user,
-  name: formData.name,
-  email: formData.email,
-  phone: formData.phone,
-  dateOfBirth: formattedDate,
-  stateOfOrigin: formData.stateOfOrigin,
-  address: formData.address,
-  avatar:avatarUrl
-};
+    // Update local storage
+    const updatedUser = { ...user, ...profilePayload };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setFormData(prev => ({ ...prev, ...updatedUser }));
 
-localStorage.setItem("user", JSON.stringify(updatedUser));
-setFormData(prev => ({ ...prev, ...updatedUser }));
-
+    // 3️⃣ Update password if provided
     if (formData.newPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
-        Swal.fire({
-          icon: "error",
-          title: "Password Mismatch",
-          text: "New password and confirm password do not match"
-        });
+        Swal.fire({ icon: "error", title: "Password Mismatch", text: "New password and confirm password do not match" });
         return;
       }
 
@@ -110,42 +94,25 @@ setFormData(prev => ({ ...prev, ...updatedUser }));
         newPassword: formData.newPassword
       });
 
-      if (passRes.data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Password Updated",
-          text: passRes.data.message
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Password Update Failed",
-          text: passRes.data.error || "Something went wrong"
-        });
+      if (!passRes.data.success) {
+        Swal.fire({ icon: "error", title: "Password Update Failed", text: passRes.data.error || "Something went wrong" });
         return;
       }
+
+      Swal.fire({ icon: "success", title: "Password Updated", text: passRes.data.message });
     }
 
-    Swal.fire({
-      icon: "success",
-      title: "Profile Updated",
-      text: "All changes saved successfully"
-    });
+    Swal.fire({ icon: "success", title: "Profile Updated", text: "All changes saved successfully" });
 
-    
+    // Clear password fields
     setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
-
   } catch (err) {
-    Swal.fire({
-      icon: "error",
-      title: "Update Failed",
-      text: err.response?.data?.error || err.message
-    });
-  }finally{
+    Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.error || err.message });
+  } finally {
     setLoading(false);
   }
 };
-
+ 
   return (
     <div>
       <div className="mb-8">
