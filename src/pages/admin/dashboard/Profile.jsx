@@ -60,8 +60,18 @@ export const Profile = () => {
     }
 
    
-    const updatedUser = { ...user, ...profilePayload };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
+  const updatedUser = {
+  ...user,
+  name: formData.name,
+  email: formData.email,
+  phone: formData.phone,
+  dateOfBirth: formattedDate,
+  stateOfOrigin: formData.stateOfOrigin,
+  address: formData.address
+};
+
+localStorage.setItem("user", JSON.stringify(updatedUser));
+setFormData(prev => ({ ...prev, ...updatedUser }));
 
     if (formData.newPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
