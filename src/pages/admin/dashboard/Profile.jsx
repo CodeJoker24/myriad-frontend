@@ -172,13 +172,16 @@ setFormData(prev => ({ ...prev, ...updatedUser }));
     <FaUser className="text-4xl text-primary" />
   )}
 </div>
-    <div className="mt-3">
-  <input
-    type="file"
-    accept="image/*"
-    onChange={(e) => setImage(e.target.files[0])}
-    className="text-sm"
-  />
+        <div className="mt-3">
+  <label className="cursor-pointer inline-block bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+    Change Photo
+    <input
+      type="file"
+      accept="image/*"
+      onChange={(e) => setImage(e.target.files[0])}
+      className="hidden"
+    />
+  </label>
 </div>
             <h2 className="text-xl font-bold text-gray-800">{formData.name}</h2>
             <p className="text-gray-500 text-sm mb-4">{formData.email}</p>
