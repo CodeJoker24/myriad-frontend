@@ -8,6 +8,7 @@ export const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] =useState(false)
   
   const user = JSON.parse(localStorage.getItem('user')) || {};
 
@@ -30,6 +31,7 @@ export const Profile = () => {
   }
 
  const handleSave = async () => {
+  setLoading(true);
   try {
     
     const formattedDate = formData.dateOfBirth
@@ -108,6 +110,8 @@ export const Profile = () => {
       title: "Update Failed",
       text: err.response?.data?.error || err.message
     });
+  }finally{
+    setLoading(false);
   }
 };
 
@@ -377,8 +381,8 @@ export const Profile = () => {
 
           
           <div className="flex justify-end">
-            <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2" onClick={handleSave}>
-              <FaSave /> Save All Changes
+            <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2" onClick={handleSave} disabled={loading}>
+              {loading ? "Saving...." : "Save Changes"}
             </button>
           </div>
         </div>
