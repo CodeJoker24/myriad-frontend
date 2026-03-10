@@ -8,6 +8,7 @@ export const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [image, setImage] = useState(null);
   const [loading, setLoading] =useState(false)
   
   const user = JSON.parse(localStorage.getItem('user')) || {};
@@ -32,6 +33,25 @@ export const Profile = () => {
 
  const handleSave = async () => {
   setLoading(true);
+  let avatarUrl = user.avatar;
+
+if (image) {
+  const formDataImg = new FormData();
+  formDataImg.append("image", image);
+  formDataImg.append("email", user.email);
+
+  const uploadRes = await API.post(
+    "/api/auth_routes/upload_profile_image",
+    formDataImg,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  );
+
+  avatarUrl = uploadRes.data.imageUrl;
+}
   try {
     
     const formattedDate = formData.dateOfBirth
@@ -67,7 +87,8 @@ export const Profile = () => {
   phone: formData.phone,
   dateOfBirth: formattedDate,
   stateOfOrigin: formData.stateOfOrigin,
-  address: formData.address
+  address: formData.address,
+  avatar:avatarUrl
 };
 
 localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -136,9 +157,29 @@ setFormData(prev => ({ ...prev, ...updatedUser }));
         
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-md p-6 text-center">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaUser className="text-4xl text-primary" />
-            </div>
+          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
+  {image ? (
+    <img
+      src={URL.createObjectURL(image)}
+      className="w-full h-full object-cover"
+    />
+  ) : user.avatar ? (
+    <img
+      src={user.avatar}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <FaUser className="text-4xl text-primary" />
+  )}
+</div>
+    <div className="mt-3">
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => setImage(e.target.files[0])}
+    className="text-sm"
+  />
+</div>
             <h2 className="text-xl font-bold text-gray-800">{formData.name}</h2>
             <p className="text-gray-500 text-sm mb-4">{formData.email}</p>
             
