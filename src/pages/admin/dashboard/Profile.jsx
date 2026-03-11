@@ -35,12 +35,12 @@ const handleSave = async () => {
   let avatarUrl = user.avatar;
 
   try {
-    // 1️⃣ Upload image if a new one is selected
+    // 1️⃣ Upload image if new
     if (image) {
       try {
         const formDataImg = new FormData();
         formDataImg.append("image", image);
-        formDataImg.append("email", user.email);
+        formDataImg.append("id", user.id); // pass ID
 
         const uploadRes = await API.post("/api/auth_routes/upload_profile_image", formDataImg);
         avatarUrl = uploadRes.data.imageUrl;
@@ -54,13 +54,13 @@ const handleSave = async () => {
       }
     }
 
-    // 2️⃣ Update profile (always runs)
+    // 2️⃣ Update profile
     const formattedDate = formData.dateOfBirth
       ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
       : null;
 
     const profilePayload = {
-      email: user.email,
+      id: user.id, // <-- important
       name: formData.name || null,
       phone: formData.phone || null,
       dateOfBirth: formattedDate,
