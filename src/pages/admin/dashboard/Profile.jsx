@@ -1,129 +1,155 @@
-import { useState, useEffect} from 'react';
-import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaSave, FaLock, FaCalendarAlt, FaGlobe, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaLock, FaCalendarAlt, FaGlobe, FaEye, FaEyeSlash } from 'react-icons/fa';
 import Swal from "sweetalert2";
 import API from '../../../api';
-
+import { supabase } from '../../../db';
 
 export const Profile = () => {
+  const [authUser, setAuthUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [image, setImage] = useState(null);
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [image, setImage] = useState(null);
-  const [loading, setLoading] =useState(false)
-  
-  const user = JSON.parse(localStorage.getItem('user')) || {};
 
   const [formData, setFormData] = useState({
-    name: user.name || '',
-    email: user.email || '',
-    phone: user.phone || '',
-    dateOfBirth: user.dateOfBirth || '',
-    stateOfOrigin: user.stateOfOrigin || '',
-    address: user.address || '',
+    name: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    stateOfOrigin: '',
+    address: '',
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    avatar: ''
   });
 
-  const handleChange = (e)=>{
-    const {name, value} = e.target;
-    setFormData(prev=>({...prev, [name]:value}))
-
-  }
-const handleSave = async () => {
-  setLoading(true);
-
-  try {
-    let avatarUrl = user.avatar || null;
-
-    // 1️⃣ Upload new image if selected
-    if (image) {
-      try {
-        const formDataImg = new FormData();
-        formDataImg.append("image", image);
-        formDataImg.append("id", user.id);
-
-        const uploadRes = await API.post("/api/auth_routes/upload_profile_image", formDataImg, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-
-        avatarUrl = uploadRes.data.imageUrl;
-      } catch (imgErr) {
-        console.error("Image upload failed:", imgErr);
-        Swal.fire({
-          icon: "warning",
-          title: "Image Upload Failed",
-          text: "Profile and password updates will still proceed"
-        });
-      }
-    }
-
-    // 2️⃣ Update profile
-    const formattedDate = formData.dateOfBirth
-      ? new Date(formData.dateOfBirth).toISOString().split("T")[0]
-      : null;
-
-    const profilePayload = {
-      id: user.id,
-      name: formData.name || null,
-      phone: formData.phone || null,
-      dateOfBirth: formattedDate,
-      stateOfOrigin: formData.stateOfOrigin || null,
-      address: formData.address || null,
-      avatar: avatarUrl
-    };
-
-    const res = await API.put("/api/auth_routes/update_profile", profilePayload);
-
-    if (!res.data.success) {
-      Swal.fire({ icon: "error", title: "Profile Update Failed", text: res.data.error || "Something went wrong" });
-      return;
-    }
-
-    // 3️⃣ Update localStorage
-    const updatedUser = { ...user, ...profilePayload };
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    setFormData(prev => ({ ...prev, ...updatedUser }));
-
-    // 4️⃣ Update password if provided
-    if (formData.newPassword) {
-      if (formData.newPassword !== formData.confirmPassword) {
-        Swal.fire({ icon: "error", title: "Password Mismatch", text: "New password and confirm password do not match" });
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Failed to get user:", error);
+        setLoadingUser(false);
         return;
       }
 
-      try {
-        const passRes = await API.put("/api/auth_routes/update_password", {
-          email: user.email,
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword
-        });
+      const user = data.user;
+      setAuthUser(user);
+      setFormData(prev => ({
+        ...prev,
+        name: user.user_metadata?.full_name || '',
+        email: user.email || '',
+        avatar: user.user_metadata?.avatar || '',
+        phone: user.user_metadata?.phone || '',
+        dateOfBirth: user.user_metadata?.dateOfBirth || '',
+        stateOfOrigin: user.user_metadata?.stateOfOrigin || '',
+        address: user.user_metadata?.address || ''
+      }));
+      setLoadingUser(false);
+    };
 
-        if (!passRes.data.success) {
-          Swal.fire({ icon: "error", title: "Password Update Failed", text: passRes.data.error || "Something went wrong" });
+    fetchUser();
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!authUser) return;
+    setLoading(true);
+
+    try {
+      let avatarUrl = formData.avatar;
+
+      // Upload new image if selected
+      if (image) {
+        try {
+          const formDataImg = new FormData();
+          formDataImg.append("image", image);
+          formDataImg.append("id", authUser.id);
+
+          const uploadRes = await API.post("/api/auth_routes/upload_profile_image", formDataImg, {
+            headers: { "Content-Type": "multipart/form-data" }
+          });
+
+          avatarUrl = uploadRes.data.imageUrl;
+        } catch (imgErr) {
+          console.error("Image upload failed:", imgErr);
+          Swal.fire({
+            icon: "warning",
+            title: "Image Upload Failed",
+            text: "Profile and password updates will still proceed"
+          });
+        }
+      }
+
+      // Update profile
+      const formattedDate = formData.dateOfBirth
+        ? new Date(formData.dateOfBirth).toISOString().split("T")[0]
+        : null;
+
+      const profilePayload = {
+        id: authUser.id,
+        name: formData.name || null,
+        phone: formData.phone || null,
+        dateOfBirth: formattedDate,
+        stateOfOrigin: formData.stateOfOrigin || null,
+        address: formData.address || null,
+        avatar: avatarUrl
+      };
+
+      const res = await API.put("/api/auth_routes/update_profile", profilePayload);
+      if (!res.data.success) {
+        Swal.fire({ icon: "error", title: "Profile Update Failed", text: res.data.error || "Something went wrong" });
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, ...profilePayload }));
+
+      // Update password if provided
+      if (formData.newPassword) {
+        if (formData.newPassword !== formData.confirmPassword) {
+          Swal.fire({ icon: "error", title: "Password Mismatch", text: "New password and confirm password do not match" });
           return;
         }
 
-        Swal.fire({ icon: "success", title: "Password Updated", text: passRes.data.message });
-      } catch (err) {
-        console.error("Password update failed:", err);
-        Swal.fire({ icon: "error", title: "Password Update Failed", text: err.response?.data?.error || err.message });
+        try {
+          const passRes = await API.put("/api/auth_routes/update_password", {
+            email: authUser.email,
+            currentPassword: formData.currentPassword,
+            newPassword: formData.newPassword
+          });
+
+          if (!passRes.data.success) {
+            Swal.fire({ icon: "error", title: "Password Update Failed", text: passRes.data.error || "Something went wrong" });
+            return;
+          }
+
+          Swal.fire({ icon: "success", title: "Password Updated", text: passRes.data.message });
+        } catch (err) {
+          console.error("Password update failed:", err);
+          Swal.fire({ icon: "error", title: "Password Update Failed", text: err.response?.data?.error || err.message });
+        }
       }
+
+      Swal.fire({ icon: "success", title: "Profile Updated", text: "All changes saved successfully" });
+
+      setFormData(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
+    } catch (err) {
+      console.error("Profile update error:", err);
+      Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.error || err.message });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    Swal.fire({ icon: "success", title: "Profile Updated", text: "All changes saved successfully" });
+  if (loadingUser) return <p>Loading profile...</p>;
 
-    // Clear password fields
-    setFormData(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
-
-  } catch (err) {
-    console.error("Profile update error:", err);
-    Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.error || err.message });
-  } finally {
-    setLoading(false);
-  }
-};
- 
   return (
     <div>
       <div className="mb-8">
@@ -132,45 +158,30 @@ const handleSave = async () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-md p-6 text-center">
-          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
-  {image ? (
-    <img
-      src={URL.createObjectURL(image)}
-      className="w-full h-full object-cover"
-    />
-  ) : user.avatar ? (
-    <img
-      src={user.avatar}
-      className="w-full h-full object-cover"
-    />
-  ) : (
-    <FaUser className="text-4xl text-primary" />
-  )}
-</div>
-        <div className="mt-3">
-  <label className="cursor-pointer inline-block bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
-    Change Photo
-    <input
-      type="file"
-      accept="image/*"
-      onChange={(e) => setImage(e.target.files[0])}
-      className="hidden"
-    />
-  </label>
-</div>
+            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
+              {image ? (
+                <img src={URL.createObjectURL(image)} className="w-full h-full object-cover" />
+              ) : formData.avatar ? (
+                <img src={formData.avatar} className="w-full h-full object-cover" />
+              ) : (
+                <FaUser className="text-4xl text-primary" />
+              )}
+            </div>
+            <div className="mt-3">
+              <label className="cursor-pointer inline-block bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                Change Photo
+                <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files[0])} className="hidden" />
+              </label>
+            </div>
             <h2 className="text-xl font-bold text-gray-800">{formData.name}</h2>
             <p className="text-gray-500 text-sm mb-4">{formData.email}</p>
-            
           </div>
         </div>
 
-        
         <div className="lg:col-span-2 space-y-6">
-          
-          <div className="bg-white rounded-xl shadow-md p-6">
+           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-lg font-bold text-gray-800 mb-6">Personal Information</h2>
 
             <div className="space-y-5">
@@ -410,8 +421,6 @@ const handleSave = async () => {
               </div>
             </div>
           </div>
-
-          
           <div className="flex justify-end">
             <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2" onClick={handleSave} disabled={loading}>
               {loading ? "Saving...." : "Save Changes"}
