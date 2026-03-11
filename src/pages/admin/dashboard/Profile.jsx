@@ -32,17 +32,21 @@ export const Profile = () => {
   }
 const handleSave = async () => {
   setLoading(true);
-  let avatarUrl = user.avatar;
 
   try {
-    // 1️⃣ Upload image if new
+    let avatarUrl = user.avatar || null;
+
+    // 1️⃣ Upload new image if selected
     if (image) {
       try {
         const formDataImg = new FormData();
         formDataImg.append("image", image);
-        formDataImg.append("id", user.id); // pass ID
+        formDataImg.append("id", user.id);
 
-        const uploadRes = await API.post("/api/auth_routes/upload_profile_image", formDataImg);
+        const uploadRes = await API.post("/api/auth_routes/upload_profile_image", formDataImg, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+
         avatarUrl = uploadRes.data.imageUrl;
       } catch (imgErr) {
         console.error("Image upload failed:", imgErr);
@@ -56,11 +60,11 @@ const handleSave = async () => {
 
     // 2️⃣ Update profile
     const formattedDate = formData.dateOfBirth
-      ? new Date(formData.dateOfBirth).toISOString().split('T')[0]
+      ? new Date(formData.dateOfBirth).toISOString().split("T")[0]
       : null;
 
     const profilePayload = {
-      id: user.id, // <-- important
+      id: user.id,
       name: formData.name || null,
       phone: formData.phone || null,
       dateOfBirth: formattedDate,
@@ -76,37 +80,44 @@ const handleSave = async () => {
       return;
     }
 
-    // Update local storage
+    // 3️⃣ Update localStorage
     const updatedUser = { ...user, ...profilePayload };
     localStorage.setItem("user", JSON.stringify(updatedUser));
     setFormData(prev => ({ ...prev, ...updatedUser }));
 
-    // 3️⃣ Update password if provided
+    // 4️⃣ Update password if provided
     if (formData.newPassword) {
       if (formData.newPassword !== formData.confirmPassword) {
         Swal.fire({ icon: "error", title: "Password Mismatch", text: "New password and confirm password do not match" });
         return;
       }
 
-      const passRes = await API.put("/api/auth_routes/update_password", {
-        email: user.email,
-        currentPassword: formData.currentPassword,
-        newPassword: formData.newPassword
-      });
+      try {
+        const passRes = await API.put("/api/auth_routes/update_password", {
+          email: user.email,
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword
+        });
 
-      if (!passRes.data.success) {
-        Swal.fire({ icon: "error", title: "Password Update Failed", text: passRes.data.error || "Something went wrong" });
-        return;
+        if (!passRes.data.success) {
+          Swal.fire({ icon: "error", title: "Password Update Failed", text: passRes.data.error || "Something went wrong" });
+          return;
+        }
+
+        Swal.fire({ icon: "success", title: "Password Updated", text: passRes.data.message });
+      } catch (err) {
+        console.error("Password update failed:", err);
+        Swal.fire({ icon: "error", title: "Password Update Failed", text: err.response?.data?.error || err.message });
       }
-
-      Swal.fire({ icon: "success", title: "Password Updated", text: passRes.data.message });
     }
 
     Swal.fire({ icon: "success", title: "Profile Updated", text: "All changes saved successfully" });
 
     // Clear password fields
-    setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+    setFormData(prev => ({ ...prev, currentPassword: "", newPassword: "", confirmPassword: "" }));
+
   } catch (err) {
+    console.error("Profile update error:", err);
     Swal.fire({ icon: "error", title: "Update Failed", text: err.response?.data?.error || err.message });
   } finally {
     setLoading(false);
