@@ -11,7 +11,9 @@ import {
   FaEye, 
   FaEyeSlash,
   FaCamera,
-  FaChevronDown
+  FaChevronDown,
+  FaCheckCircle,
+  FaTimesCircle
 } from 'react-icons/fa';
 
 export const Profile = () => {
@@ -163,7 +165,7 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Change Password Card */}
+          {/* Change Password Card - Split Layout */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -173,68 +175,102 @@ export const Profile = () => {
             </div>
             
             <div className="p-6">
-              <div className="grid grid-cols-1 gap-5 max-w-lg">
-                {/* Current Password */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">Current Password</label>
-                  <div className="relative">
-                    <input
-                      type={showCurrentPassword ? 'text' : 'password'}
-                      placeholder="Enter current password"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition pr-12 bg-gray-50/50 focus:bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showCurrentPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
-                    </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left Column - Password Inputs */}
+                <div className="space-y-5">
+                  {/* Current Password */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Current Password</label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        placeholder="Enter current password"
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition pr-12 bg-gray-50/50 focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showCurrentPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder="Enter new password"
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition pr-12 bg-gray-50/50 focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showNewPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm New Password */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-700">Confirm New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm new password"
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition pr-12 bg-gray-50/50 focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showConfirmPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* New Password */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showNewPassword ? 'text' : 'password'}
-                      placeholder="Enter new password"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition pr-12 bg-gray-50/50 focus:bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showNewPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
-                    </button>
+                {/* Right Column - Password Requirements */}
+                <div className="bg-gray-50/80 rounded-xl p-5 border border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <FaLock className="text-primary" size={14} />
+                    Password Requirements
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <FaCheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={14} />
+                      <span className="text-xs text-gray-600">At least 8 characters long</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <FaCheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={14} />
+                      <span className="text-xs text-gray-600">Contains uppercase & lowercase letters</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <FaTimesCircle className="text-gray-300 mt-0.5 flex-shrink-0" size={14} />
+                      <span className="text-xs text-gray-400">Contains at least one number</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <FaTimesCircle className="text-gray-300 mt-0.5 flex-shrink-0" size={14} />
+                      <span className="text-xs text-gray-400">Contains at least one special character</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <FaLock className="text-primary" size={12} />
+                      Password strength: <span className="text-yellow-600 font-medium">Medium</span>
+                    </p>
+                    <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2">
+                      <div className="w-2/3 h-full bg-yellow-500 rounded-full"></div>
+                    </div>
                   </div>
                 </div>
-
-                {/* Confirm New Password */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">Confirm New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Confirm new password"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition pr-12 bg-gray-50/50 focus:bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showConfirmPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Password Hint */}
-                <p className="text-xs text-gray-400 mt-2">
-                  Password must be at least 8 characters long and include a mix of letters, numbers, and symbols
-                </p>
               </div>
             </div>
           </div>
