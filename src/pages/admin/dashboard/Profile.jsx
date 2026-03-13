@@ -1,20 +1,5 @@
 import { useState } from 'react';
-import { 
-  FaUser, 
-  FaEnvelope, 
-  FaPhone, 
-  FaMapMarkerAlt, 
-  FaSave, 
-  FaLock, 
-  FaCalendarAlt, 
-  FaGlobe, 
-  FaEye, 
-  FaEyeSlash,
-  FaCamera,
-  FaChevronDown,
-  FaCheckCircle,
-  FaTimesCircle
-} from 'react-icons/fa';
+import { FaUser,FaSave, FaLock, FaEye, FaEyeSlash, FaCamera,FaChevronDown, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 export const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
