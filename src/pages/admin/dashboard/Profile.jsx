@@ -5,6 +5,7 @@ import API from '../../../api';
 import { supabase } from '../../../db';
 
 export const Profile = () => {
+
   const [authUser, setAuthUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -26,151 +27,263 @@ export const Profile = () => {
     avatar: ''
   });
 
-  useEffect(() => {
-   const fetchUser = async () => {
-  try {
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData?.session?.user;
+/* ---------------- FETCH USER ---------------- */
 
-    if (!user) throw new Error("No authenticated user found");
+useEffect(() => {
 
-    setAuthUser(user);
+  const fetchUser = async () => {
 
-    const { data: profile, error: tableError } = await supabase
-      .from("myriad_users")
-      .select("*")
-      .eq("id", user.id)
-      .single();
+    try {
 
-    if (tableError) throw tableError;
+      const { data: { user } } = await supabase.auth.getUser();
 
-    setFormData({
-      name: profile.name || "",
-      email: profile.email || "",
-      phone: profile.phone || "",
-      dateOfBirth: profile.dateOfBirth || "",
-      stateOfOrigin: profile.stateOfOrigin || "",
-      address: profile.address || "",
-      avatar: profile.avatar || "",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    });
+      if (!user) throw new Error("No authenticated user");
 
-  } catch (err) {
-    console.error("Error fetching user:", err);
-  } finally {
-    setLoadingUser(false);
-  }
-};
+      setAuthUser(user);
 
-    fetchUser();
-  }, []);
+      const { data: profile, error } = await supabase
+        .from("myriad_users")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+
+      setFormData({
+        name: profile?.name || "",
+        email: profile?.email || "",
+        phone: profile?.phone || "",
+        dateOfBirth: profile?.dateOfBirth || "",
+        stateOfOrigin: profile?.stateOfOrigin || "",
+        address: profile?.address || "",
+        avatar: profile?.avatar || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+
+    } catch (err) {
+
+      console.error("Error fetching user:", err);
+
+    } finally {
+
+      setLoadingUser(false);
+
+    }
+
+  };
+
+  fetchUser();
+
+}, []);
 
 
-  useEffect(() => {
+
+/* ---------------- AUTH LISTENER ---------------- */
+
+useEffect(() => {
+
   const { data: listener } = supabase.auth.onAuthStateChange(
     (_event, session) => {
+
       if (session?.user) {
+
         setAuthUser(session.user);
+
       }
+
     }
   );
 
-  return () => listener.subscription.unsubscribe();
-}, []);
+  return () => {
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    listener.subscription.unsubscribe();
+
   };
 
-  const handleSave = async () => {
-    if (!authUser) return;
-    setLoading(true);
+}, []);
 
-    try {
-      let avatarUrl = formData.avatar;
 
-      // Upload new avatar if selected
-      if (image) {
-        const formDataImg = new FormData();
-        formDataImg.append('image', image);
-        formDataImg.append('id', authUser.id);
 
-        const uploadRes = await API.post('/api/auth_routes/upload_profile_image', formDataImg, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        avatarUrl = uploadRes.data.imageUrl;
+/* ---------------- HANDLE INPUT ---------------- */
+
+const handleChange = (e) => {
+
+  const { name, value } = e.target;
+
+  setFormData(prev => ({
+    ...prev,
+    [name]: value
+  }));
+
+};
+
+
+
+/* ---------------- SAVE PROFILE ---------------- */
+
+const handleSave = async () => {
+
+  if (!authUser) return;
+
+  setLoading(true);
+
+  try {
+
+    let avatarUrl = formData.avatar;
+
+
+
+/* -------- IMAGE UPLOAD -------- */
+
+    if (image) {
+
+      const formDataImg = new FormData();
+
+      formDataImg.append('image', image);
+      formDataImg.append('id', authUser.id);
+
+      const uploadRes = await API.post(
+        '/api/auth_routes/upload_profile_image',
+        formDataImg,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      if (!uploadRes?.data?.imageUrl) {
+        throw new Error("Image upload failed");
       }
 
-      // Update profile
-      const profilePayload = {
-        id: authUser.id,
-        name: formData.name || null,
-        phone: formData.phone || null,
-        dateOfBirth: formData.dateOfBirth || null,
-        stateOfOrigin: formData.stateOfOrigin || null,
-        address: formData.address || null,
-        avatar: avatarUrl
-      };
+      avatarUrl = uploadRes.data.imageUrl;
 
-      const res = await API.put('/api/auth_routes/update_profile', profilePayload);
-      if (!res.data.success) throw new Error(res.data.error || 'Profile update failed');
+    }
 
-      setFormData(prev => ({
-  ...prev,
-  name: profilePayload.name,
-  phone: profilePayload.phone,
-  dateOfBirth: profilePayload.dateOfBirth,
-  stateOfOrigin: profilePayload.stateOfOrigin,
-  address: profilePayload.address,
-  avatar: profilePayload.avatar
-}));
 
-      // Update password if provided
-      if (formData.newPassword) {
-        if (formData.newPassword !== formData.confirmPassword) {
-          Swal.fire({ icon: 'error', title: 'Password Mismatch', text: 'New password and confirm password do not match' });
-          return;
-        }
 
-        const passRes = await API.put('/api/auth_routes/update_password', {
-          email: authUser.email,
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword
+/* -------- PROFILE UPDATE -------- */
+
+    const profilePayload = {
+
+      id: authUser.id,
+      name: formData.name || null,
+      phone: formData.phone || null,
+      dateOfBirth: formData.dateOfBirth || null,
+      stateOfOrigin: formData.stateOfOrigin || null,
+      address: formData.address || null,
+      avatar: avatarUrl
+
+    };
+
+    const res = await API.put(
+      '/api/auth_routes/update_profile',
+      profilePayload
+    );
+
+    if (!res.data.success) {
+      throw new Error(res.data.error || 'Profile update failed');
+    }
+
+
+
+/* -------- PASSWORD UPDATE -------- */
+
+    if (formData.newPassword) {
+
+      if (formData.newPassword !== formData.confirmPassword) {
+
+        setLoading(false);
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Password Mismatch',
+          text: 'New password and confirm password do not match'
         });
 
-        if (!passRes.data.success) throw new Error(passRes.data.error || 'Password update failed');
+        return;
 
-        Swal.fire({ icon: 'success', title: 'Password Updated', text: passRes.data.message });
       }
 
-      Swal.fire({ icon: 'success', title: 'Profile Updated', text: 'All changes saved successfully' });
-      setFormData(prev => ({
-     ...prev,
+      const passRes = await API.put('/api/auth_routes/update_password', {
+
+        email: authUser.email,
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword
+
+      });
+
+      if (!passRes.data.success) {
+
+        throw new Error(passRes.data.error || 'Password update failed');
+
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Password Updated',
+        text: passRes.data.message
+      });
+
+    }
+
+
+
+/* -------- UPDATE LOCAL STATE -------- */
+
+    setFormData(prev => ({
+      ...prev,
       name: profilePayload.name,
       phone: profilePayload.phone,
       dateOfBirth: profilePayload.dateOfBirth,
       stateOfOrigin: profilePayload.stateOfOrigin,
       address: profilePayload.address,
-      avatar: profilePayload.avatar
-      }));
-      setImage(null);
+      avatar: avatarUrl,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }));
 
-    } catch (err) {
-      console.error("Save failed:", err);
-      Swal.fire({ icon: 'error', title: 'Update Failed', text: err.message });
-    } finally {
-      setLoading(false);
-    }
-  };
+    setImage(null);
 
-  if (loadingUser) return <p>Loading profile...</p>;
+    Swal.fire({
+      icon: 'success',
+      title: 'Profile Updated',
+      text: 'All changes saved successfully'
+    });
 
-  return (
-    <div>
+
+
+  } catch (err) {
+
+    console.error("Save failed:", err);
+
+    Swal.fire({
+      icon: 'error',
+      title: 'Update Failed',
+      text: err.message
+    });
+
+  } finally {
+
+    setLoading(false);
+
+  }
+
+};
+
+
+
+/* ---------------- LOADING ---------------- */
+
+if (loadingUser) return <p>Loading profile...</p>;
+
+
+
+/* ---------------- UI ---------------- */
+
+return (
+
+  <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
         <p className="text-gray-600">Manage your personal information</p>
@@ -319,5 +432,6 @@ export const Profile = () => {
         </div>
       </div>
     </div>
-  );
+
+);
 };
