@@ -1,12 +1,32 @@
 import { useState } from 'react';
 import { FaUser, FaSave, FaLock, FaEye, FaEyeSlash, FaCamera, FaChevronDown, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { supabase } from '../../../db';
 
 export const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [formData, setFormData] = useState("")
+  const [formData, setFormData] = useState({
+  name: "",
+  email: "",
+  phone: "",
+  dob: "",
+  state: "",
+  address: "",
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+  })
+
+ const handleChange = (e) => {
+  const { name, value } = e.target;
+
+  setFormData(prev => ({
+    ...prev,
+    [name]: value
+  }));
+};
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -59,13 +79,6 @@ export const Profile = () => {
               
               <h2 className="text-xl font-semibold text-gray-900 mt-4">Your Name</h2>
               <p className="text-sm text-gray-500">youremail@example.com</p>
-              
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-400 flex items-center justify-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                  Member since 2024
-                </p>
-              </div>
             </div>
           </div>
         </div>
