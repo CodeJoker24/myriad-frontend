@@ -56,6 +56,7 @@ export const Profile = () => {
                   <input
                     type="email"
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                    autoComplete='off'
                   />
                 </div>
               </div>
