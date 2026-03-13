@@ -247,7 +247,7 @@ export const Profile = () => {
           {/* Save Button */}
           <div className="flex justify-end">
             <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all flex items-center gap-2">
-              <FaSave /> Save All Changes
+             Save Changes
             </button>
           </div>
         </div>
