@@ -119,7 +119,15 @@ export const Profile = () => {
       const res = await API.put('/api/auth_routes/update_profile', profilePayload);
       if (!res.data.success) throw new Error(res.data.error || 'Profile update failed');
 
-      setFormData(prev => ({ ...prev, ...profilePayload }));
+      setFormData(prev => ({
+  ...prev,
+  name: profilePayload.name,
+  phone: profilePayload.phone,
+  dateOfBirth: profilePayload.dateOfBirth,
+  stateOfOrigin: profilePayload.stateOfOrigin,
+  address: profilePayload.address,
+  avatar: profilePayload.avatar
+}));
 
       // Update password if provided
       if (formData.newPassword) {
