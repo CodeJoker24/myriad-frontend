@@ -19,8 +19,8 @@ export const Profile = () => {
             <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaUser className="text-4xl text-primary" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
-            <p className="text-gray-500 text-sm mb-4">{user.email}</p>
+            <h2 className="text-xl font-bold text-gray-800"></h2>
+            <p className="text-gray-500 text-sm mb-4"></p>
             <p className="text-xs text-gray-400">Member since 2024</p>
           </div>
         </div>
@@ -41,7 +41,6 @@ export const Profile = () => {
                   </div>
                   <input
                     type="text"
-                    defaultValue={user.name}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
                 </div>
@@ -56,7 +55,6 @@ export const Profile = () => {
                   </div>
                   <input
                     type="email"
-                    defaultValue={user.email}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
                 </div>
@@ -71,7 +69,6 @@ export const Profile = () => {
                   </div>
                   <input
                     type="tel"
-                    defaultValue={user.phone}
                     placeholder="08012345678"
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
@@ -87,7 +84,6 @@ export const Profile = () => {
                   </div>
                   <input
                     type="date"
-                    defaultValue={user.dateOfBirth}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
                   />
                 </div>
@@ -101,7 +97,6 @@ export const Profile = () => {
                     <FaGlobe className="text-gray-400" />
                   </div>
                   <select
-                    defaultValue={user.stateOfOrigin}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition appearance-none bg-white"
                   >
                     <option value="">Select state</option>
@@ -154,7 +149,6 @@ export const Profile = () => {
                     <FaMapMarkerAlt className="text-gray-400" />
                   </div>
                   <textarea
-                    defaultValue={user.address}
                     placeholder="Enter your address"
                     rows="3"
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition resize-none"
