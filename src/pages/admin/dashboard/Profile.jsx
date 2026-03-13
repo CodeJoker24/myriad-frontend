@@ -9,7 +9,6 @@ export const Profile = () => {
   const [loadingUser, setLoadingUser] = useState(true);
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(null);
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -28,45 +27,59 @@ export const Profile = () => {
   });
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) throw new Error("No authenticated user found");
+   const fetchUser = async () => {
+  try {
 
-        setAuthUser(user);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
 
-        // Fetch user profile from table
-        const { data: profile, error: tableError } = await supabase
-          .from('myriad_users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+    if (!user) throw new Error("No authenticated user found");
 
-        if (tableError) throw tableError;
+    setAuthUser(user);
 
-        setFormData({
-          name: profile.name || '',
-          email: profile.email || '',
-          phone: profile.phone || '',
-          dateOfBirth: profile.dateOfBirth || '',
-          stateOfOrigin: profile.stateOfOrigin || '',
-          address: profile.address || '',
-          avatar: profile.avatar || '',
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
+    const { data: profile, error: tableError } = await supabase
+      .from("myriad_users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-      } catch (err) {
-        console.error("Error fetching user:", err);
-        Swal.fire({ icon: 'error', title: 'Error', text: err.message });
-      } finally {
-        setLoadingUser(false);
-      }
-    };
+    if (tableError) throw tableError;
+
+    setFormData({
+      name: profile.name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      dateOfBirth: profile.dateOfBirth || "",
+      stateOfOrigin: profile.stateOfOrigin || "",
+      address: profile.address || "",
+      avatar: profile.avatar || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    });
+
+  } catch (err) {
+    console.error("Error fetching user:", err);
+  } finally {
+    setLoadingUser(false);
+  }
+};
 
     fetchUser();
   }, []);
+
+
+  useEffect(() => {
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
+      if (session?.user) {
+        setAuthUser(session.user);
+      }
+    }
+  );
+
+  return () => listener.subscription.unsubscribe();
+}, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -127,7 +140,15 @@ export const Profile = () => {
       }
 
       Swal.fire({ icon: 'success', title: 'Profile Updated', text: 'All changes saved successfully' });
-      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+      setFormData(prev => ({
+     ...prev,
+      name: profilePayload.name,
+      phone: profilePayload.phone,
+      dateOfBirth: profilePayload.dateOfBirth,
+      stateOfOrigin: profilePayload.stateOfOrigin,
+      address: profilePayload.address,
+      avatar: profilePayload.avatar
+      }));
       setImage(null);
 
     } catch (err) {
