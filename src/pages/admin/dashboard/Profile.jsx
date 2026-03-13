@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FaUser,FaSave, FaLock, FaEye, FaEyeSlash, FaCamera,FaChevronDown, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaUser, FaSave, FaLock, FaEye, FaEyeSlash, FaCamera, FaChevronDown, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 
 export const Profile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [formData, setFormData] = useState("")
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -221,7 +222,7 @@ export const Profile = () => {
                   </div>
                 </div>
 
-                {/* Right Column - Password Requirements */}
+                {/* Right Column - Password Requirements Only */}
                 <div className="bg-gray-50/80 rounded-xl p-5 border border-gray-100">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <FaLock className="text-primary" size={14} />
@@ -243,16 +244,6 @@ export const Profile = () => {
                     <div className="flex items-start gap-2">
                       <FaTimesCircle className="text-gray-300 mt-0.5 flex-shrink-0" size={14} />
                       <span className="text-xs text-gray-400">Contains at least one special character</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-gray-200">
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <FaLock className="text-primary" size={12} />
-                      Password strength: <span className="text-yellow-600 font-medium">Medium</span>
-                    </p>
-                    <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2">
-                      <div className="w-2/3 h-full bg-yellow-500 rounded-full"></div>
                     </div>
                   </div>
                 </div>
