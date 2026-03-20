@@ -10,6 +10,7 @@ import { MyWards } from './pages/admin/dashboard/MyWards';
 import { Profile } from './pages/admin/dashboard/Profile';
 import { ClassroomManagement } from './pages/admin/dashboard/ClassroomManagement';
 import { ResultManagement } from './pages/admin/dashboard/ResultManagement';
+import { ChangePassword } from './pages/admin/dashboard/ChangePassword';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           <Route path="site-management" element={<SiteManagement />} />
           <Route path="my-wards" element={<MyWards />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="change-password" element={<ChangePassword />} />
           <Route path="classroom" element={<ClassroomManagement />} />
           <Route path="results" element={<ResultManagement />} />
         </Route>

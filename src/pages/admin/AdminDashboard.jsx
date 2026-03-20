@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, FaSchool, FaUsers, FaChalkboardTeacher, FaBook, FaClipboardList, FaSignOutAlt, FaChevronDown, FaGlobe } from 'react-icons/fa';
+import { FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, FaSchool, FaUsers, FaChalkboardTeacher, FaBook, FaClipboardList, FaSignOutAlt, FaChevronDown, FaGlobe, FaLock} from 'react-icons/fa';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
@@ -36,6 +36,7 @@ const AdminDashboard = () => {
     { name: 'Site Management', icon: <FaGlobe />, path: '/admin/dashboard/site-management' },
     { name: 'My Wards', icon: <FaUsers />, path: '/admin/dashboard/my-wards' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/admin/dashboard/profile' },
+    { name: 'Change Password', icon: <FaLock />, path: '/admin/dashboard/change-password' },
     { name: 'Classroom Management', icon: <FaChalkboardTeacher />, path: '/admin/dashboard/classroom' },
     { name: 'Result Management', icon: <FaClipboardList />, path: '/admin/dashboard/results' },
   ];
@@ -51,17 +52,17 @@ const AdminDashboard = () => {
 
  
   useEffect(() => {
-    // This forces a re-render to update the navbar position
+    
   }, [sidebarOpen]);
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Sidebar - completely hidden when closed */}
+      
       <div className={`
         fixed top-0 left-0 h-full bg-white shadow-xl transition-all duration-300 z-30
         ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
       `}>
-        {/* Logo Area */}
+       
         <div className="h-16 flex items-center justify-between px-4 border-b">
           <span className="text-xl font-bold text-primary">
             MYRIAD ADMIN
@@ -74,7 +75,7 @@ const AdminDashboard = () => {
           </button>
         </div>
 
-        {/* Navigation Links */}
+      
         <nav className="mt-6 px-2 h-[calc(100vh-4rem)] overflow-y-auto">
           {sidebarLinks.map((link, index) => (
             <Link
@@ -92,7 +93,7 @@ const AdminDashboard = () => {
             </Link>
           ))}
 
-          {/* Logout Button */}
+          
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 mt-4 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
@@ -103,7 +104,7 @@ const AdminDashboard = () => {
         </nav>
       </div>
 
-      {/* Overlay for all devices when sidebar is open */}
+    
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-20"
@@ -111,12 +112,12 @@ const AdminDashboard = () => {
         />
       )}
 
-      {/* Main Content Area */}
+     
       <div className="transition-all duration-300">
-        {/* Navbar */}
+    
         <header className="h-16 bg-white shadow-sm fixed right-0 top-0 z-10 left-0">
           <div className="h-full px-6 flex items-center justify-between">
-            {/* Menu button to open sidebar */}
+           
             <button 
               onClick={() => setSidebarOpen(true)}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"
@@ -124,7 +125,7 @@ const AdminDashboard = () => {
               <FaBars />
             </button>
 
-            {/* Search Bar */}
+            
             <div className="flex-1 max-w-md ml-4">
               <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -136,9 +137,9 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Right Section */}
+           
             <div className="flex items-center gap-4">
-              {/* Notifications */}
+         
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
@@ -162,7 +163,7 @@ const AdminDashboard = () => {
                 )}
               </div>
 
-              {/* User Menu */}
+             
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
@@ -200,7 +201,7 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        {/* Page Content */}
+        
         <main className="p-6 mt-16">
           <Outlet />
         </main>
