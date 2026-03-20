@@ -1,6 +1,6 @@
 import { FaUser, FaCamera, FaChevronDown } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import API from '../../../api';
 
 
