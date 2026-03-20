@@ -1,7 +1,61 @@
 import { FaUser, FaCamera, FaChevronDown } from 'react-icons/fa';
+import Swal from 'sweetalert2';
+import { useState } from 'react';
+import API from '../../../api';
+
+
 
 export const Profile = () => {
+  const [loading, setLoading] = useState(false)
   const user = JSON.parse(localStorage.getItem('user'));
+  const [name, setName] = useState(user.name || "");
+  const [email, setEmail] = useState(user.email ||"");
+  const [phone, setPhone] = useState(user.phone || "");
+  const [dateOfBirth, setDateOfBirth] = useState(user.dateOfBirth || "");
+  const [stateOfOrigin, setStateOfOrigin] = useState(user.stateOfOrigin || "");
+  const [address, setAddress] = useState("")
+
+  const Update = async(x)=>{
+    x.preventDefault();
+    setLoading(true)
+
+    if(!name || !email || !phone || !dateOfBirth || !stateOfOrigin || !address){
+       Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text : "All fields are required! Please fill them out.",
+        confirmButtonColor: "#3B82F6",
+        }
+        )
+        setLoading(false);
+        return; 
+    }
+
+    try{
+      const response = await API.put(`/api/auth_routes/update-profile/${user.id}`, {name, email, phone, dateOfBirth, stateOfOrigin, address});
+
+      const updatedUser = {...user, ...response.data.user};
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Profile Updated',
+        text: 'Your changes have been saved successfully!',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+    catch(err){
+      Swal.fire({
+        icon: 'error',
+        title: 'Update Failed',
+        text: err.response?.data?.error || "Something went wrong",
+      });
+    }finally{
+      setLoading(false);
+    }
+    
+  }
 
   const nigerianStates = [
     "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", 
@@ -13,14 +67,14 @@ export const Profile = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <form className="max-w-7xl mx-auto">
+      <form className="max-w-7xl mx-auto" onSubmit={Update}>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
           <p className="text-gray-500 mt-1">Manage your personal information and security</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Sidebar - Profile Summary */}
+          
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
               <div className="text-center">
@@ -44,9 +98,9 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Right Side - Forms */}
+          
           <div className="lg:col-span-3 space-y-6">
-            {/* Personal Information Card */}
+            
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                 <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -63,6 +117,7 @@ export const Profile = () => {
                     <input
                       name="name"
                       type="text"
+                      onChange={(e)=>setName(e.target.value)}
                       defaultValue={user?.name}
                       placeholder="Enter your name"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
@@ -76,6 +131,7 @@ export const Profile = () => {
                       name="email"
                       type="email"
                       defaultValue={user?.email}
+                      onChange={(e)=>setEmail(e.target.value)}
                       placeholder="Enter your email"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
                     />
@@ -88,6 +144,7 @@ export const Profile = () => {
                       name="phone"
                       type="tel"
                       defaultValue={user?.phone}
+                      onChange={(e)=>setPhone(e.target.value)}
                       placeholder="08012345678"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
                     />
@@ -99,6 +156,7 @@ export const Profile = () => {
                     <input
                       name="dob"
                       type="date"
+                      onChange={(e)=>setDateOfBirth(e.target.value)}
                       defaultValue={user?.dateOfBirth}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
                     />
@@ -110,6 +168,7 @@ export const Profile = () => {
                     <div className="relative">
                       <select
                         name="state"
+                        onChange={(e)=>setStateOfOrigin(e.target.value)}
                         defaultValue={user?.stateOfOrigin}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white appearance-none"
                       >
@@ -128,6 +187,7 @@ export const Profile = () => {
                     <textarea
                       name="address"
                       defaultValue={user?.address}
+                      onChange={(e)=>setAddress(e.target.value)}
                       placeholder="Enter your address"
                       rows="3"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition resize-none bg-gray-50/50 focus:bg-white"
@@ -142,8 +202,9 @@ export const Profile = () => {
               <button 
                 type="submit" 
                 className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md"
+                disabled={loading}
               >
-                Save Changes
+                {loading ? "Saving...." : "Save Changes"}
               </button>
             </div>
           </div>
