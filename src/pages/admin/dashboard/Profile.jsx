@@ -1,6 +1,6 @@
 import { FaUser, FaCamera, FaChevronDown } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import { useState, useEffect} from 'react';
+import { useState} from 'react';
 import API from '../../../api';
 
 
@@ -8,54 +8,79 @@ import API from '../../../api';
 export const Profile = () => {
   const [loading, setLoading] = useState(false)
   const user = JSON.parse(localStorage.getItem('user'));
-  const [name, setName] = useState(user.name || "");
-  const [email, setEmail] = useState(user.email ||"");
-  const [phone, setPhone] = useState(user.phone || "");
-  const [dateOfBirth, setDateOfBirth] = useState(user.dateOfBirth || "");
-  const [stateOfOrigin, setStateOfOrigin] = useState(user.stateOfOrigin || "");
-  const [address, setAddress] = useState("")
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email ||"");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth || "");
+  const [stateOfOrigin, setStateOfOrigin] = useState(user?.stateOfOrigin || "");
+  const [address, setAddress] = useState(user?.address || "")
 
-  const Update = async(x)=>{
+ const Update = async (x) => {
     x.preventDefault();
-    setLoading(true)
+    setLoading(true);
 
-    if(!name || !email || !phone || !dateOfBirth || !stateOfOrigin || !address){
-       Swal.fire({
+
+   
+    if (!name || !email || !phone || !dateOfBirth || !stateOfOrigin || !address) {
+      console.log("3. VALIDATION FAILED");
+      Swal.fire({
         icon: "error",
         title: "Oops...",
-        text : "All fields are required! Please fill them out.",
+        text: "All fields are required! Please fill them out.",
         confirmButtonColor: "#3B82F6",
-        }
-        )
-        setLoading(false);
-        return; 
-    }
-
-    try{
-      const response = await API.put(`/api/auth_routes/update-profile/${user.id}`, {name, email, phone, dateOfBirth, stateOfOrigin, address});
-
-      const updatedUser = {...user, ...response.data.user};
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Profile Updated',
-        text: 'Your changes have been saved successfully!',
-        timer: 2000,
-        showConfirmButton: false
       });
+      setLoading(false);
+      return;
     }
-    catch(err){
+
+    try {
+      
+      
+      const response = await API.put(`/api/auth_routes/update-profile/${user.id}`, {
+        name,
+        email,
+        phone,
+        dateOfBirth,
+        stateOfOrigin,
+        address
+      });
+
+  
+
+      
+      if (response.data && response.data.user) {
+       
+        const updatedUser = { ...user, ...response.data.user };
+        
+        
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Profile Updated',
+          text: 'Your changes have been saved successfully!',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } else {
+        
+        Swal.fire({
+          icon: 'warning',
+          title: 'Saved with issues',
+          text: 'Profile updated, but we couldn\'t refresh your local data. Please reload the page.',
+        });
+      }
+    } catch (err) {
+      console.error("6. API Error:", err);
       Swal.fire({
         icon: 'error',
         title: 'Update Failed',
         text: err.response?.data?.error || "Something went wrong",
       });
-    }finally{
+    } finally {
       setLoading(false);
     }
-    
-  }
+  };
 
   const nigerianStates = [
     "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", 
@@ -118,7 +143,7 @@ export const Profile = () => {
                       name="name"
                       type="text"
                       onChange={(e)=>setName(e.target.value)}
-                      defaultValue={user?.name}
+                      value={name}
                       placeholder="Enter your name"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
                     />
@@ -130,7 +155,7 @@ export const Profile = () => {
                     <input
                       name="email"
                       type="email"
-                      defaultValue={user?.email}
+                      value={email}
                       onChange={(e)=>setEmail(e.target.value)}
                       placeholder="Enter your email"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
@@ -143,7 +168,7 @@ export const Profile = () => {
                     <input
                       name="phone"
                       type="tel"
-                      defaultValue={user?.phone}
+                      value={phone}
                       onChange={(e)=>setPhone(e.target.value)}
                       placeholder="08012345678"
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
@@ -157,7 +182,7 @@ export const Profile = () => {
                       name="dob"
                       type="date"
                       onChange={(e)=>setDateOfBirth(e.target.value)}
-                      defaultValue={user?.dateOfBirth}
+                      value={dateOfBirth}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white"
                     />
                   </div>
@@ -169,7 +194,7 @@ export const Profile = () => {
                       <select
                         name="state"
                         onChange={(e)=>setStateOfOrigin(e.target.value)}
-                        defaultValue={user?.stateOfOrigin}
+                        value={stateOfOrigin}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50/50 focus:bg-white appearance-none"
                       >
                         <option value="">Select state</option>
@@ -186,7 +211,7 @@ export const Profile = () => {
                     <label className="text-sm font-medium text-gray-700">Address</label>
                     <textarea
                       name="address"
-                      defaultValue={user?.address}
+                      value={address}
                       onChange={(e)=>setAddress(e.target.value)}
                       placeholder="Enter your address"
                       rows="3"
