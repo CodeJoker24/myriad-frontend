@@ -60,7 +60,7 @@ export const Profile = () => {
           title: 'Profile Updated',
           text: 'Your changes have been saved successfully!',
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: true
         });
       } else {
         
