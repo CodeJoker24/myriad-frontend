@@ -22,7 +22,6 @@ export const Profile = () => {
 
    
     if (!name || !email || !phone || !dateOfBirth || !stateOfOrigin || !address) {
-      console.log("3. VALIDATION FAILED");
       Swal.fire({
         icon: "error",
         title: "Oops...",
