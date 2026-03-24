@@ -11,6 +11,7 @@ import { Profile } from './pages/admin/dashboard/Profile';
 import { ClassroomManagement } from './pages/admin/dashboard/ClassroomManagement';
 import { ResultManagement } from './pages/admin/dashboard/ResultManagement';
 import { ChangePassword } from './pages/admin/dashboard/ChangePassword';
+import { ResetPassword } from './pages/admin/dashboard/ResetPassword';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/admin/signin" element={<AdminSignIn />} />
         <Route path="/admin/signup" element={<AdminSignUp />} />
+        <Route path="/admin/dashboard/reset-password" element={<ResetPassword />} />
         
         {/* Protected Route - wraps all dashboard routes */}
         <Route path="/admin/dashboard" element={
