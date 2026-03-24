@@ -2,6 +2,7 @@ import { FaUser, FaCamera, FaChevronDown } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useState} from 'react';
 import API from '../../../api';
+import { supabase } from '../../../db';
 
 
 
@@ -35,6 +36,19 @@ export const Profile = () => {
 
     try {
       
+      if(email !== user.email){
+        const {data:authData, error:authError} = await supabase.auth.updateUser({
+          email:email
+        });
+
+        if(authError) throw authError
+
+        Swal.fire({
+        icon: 'info',
+        title: 'Check your new email',
+        text: 'We sent a verification link to your new email address. Please confirm it to complete the change.',
+      });
+      }
       
       const response = await API.put(`/api/auth_routes/update-profile/${user.id}`, {
         name,
