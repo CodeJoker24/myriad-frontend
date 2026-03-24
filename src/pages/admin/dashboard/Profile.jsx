@@ -109,7 +109,7 @@ export const Profile = () => {
       <form className="max-w-7xl mx-auto" onSubmit={Update}>
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-          <p className="text-gray-500 mt-1">Manage your personal information and security</p>
+          <p className="text-gray-500 mt-1">Manage your personal information and securit</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
