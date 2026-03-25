@@ -2,6 +2,7 @@ import { FaUser, FaCamera, FaChevronDown } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useState} from 'react';
 import API from '../../../api';
+import { supabase } from '../../../db';
 
 
 
@@ -14,68 +15,94 @@ export const Profile = () => {
   const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth || "");
   const [stateOfOrigin, setStateOfOrigin] = useState(user?.stateOfOrigin || "");
   const [address, setAddress] = useState(user?.address || "")
+  const [preview, setPreview] = useState(null); 
+  const [selectedFile, setSelectedFile] = useState(null);
+
+const handleImageSelect = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      return Swal.fire("Error", "Image is too large (Max 2MB)", "error");
+    }
+    if(preview){
+      URL.revokeObjectURL(preview);
+    }
+    // Set the file to state to be uploaded LATER in the Update function
+    setSelectedFile(file);
+
+    // Generate a local URL so the developer (you!) sees the preview instantly
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+  };
+
+
 
  const Update = async (x) => {
     x.preventDefault();
     setLoading(true);
 
-
-   
     if (!name || !email || !phone || !dateOfBirth || !stateOfOrigin || !address) {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "All fields are required! Please fill them out.",
-        confirmButtonColor: "#3B82F6",
-      });
+      Swal.fire({ icon: "error", title: "Oops...", text: "All fields are required!" });
       setLoading(false);
       return;
     }
 
     try {
+      let finalImageUrl = user?.profile_image; // Default to existing image
+
+      // --- STEP A: UPLOAD TO SUPABASE (Only if a new file was picked) ---
+   if (selectedFile) {
+    const fileExt = selectedFile.name.split('.').pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, selectedFile);
+
+    if (uploadError) throw uploadError;
+
+    // Get the URL
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName); // No 'avatars/' prefix here, just fileName
       
-      
+    finalImageUrl = urlData.publicUrl;
+    console.log("NEW PUBLIC URL:", finalImageUrl); // Verify this shows a real link
+}
+        console.log("SENDING TO BACKEND:", {
+  name,
+  profile_image: finalImageUrl // Check if this is a URL or null here!
+});
+      // --- STEP B: UPDATE BACKEND ---
       const response = await API.put(`/api/auth_routes/update-profile/${user.id}`, {
         name,
         email,
         phone,
         dateOfBirth,
         stateOfOrigin,
-        address
+        address,
+        profile_image: finalImageUrl // Sends the NEW url or the OLD one
       });
 
-  
-
-      
       if (response.data && response.data.user) {
-       
         const updatedUser = { ...user, ...response.data.user };
-        
-        
         localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        // Clean up
+        setPreview(null);
+        setSelectedFile(null);
 
         Swal.fire({
           icon: 'success',
           title: 'Profile Updated',
-          text: 'Your changes have been saved successfully!',
+          text: 'All changes and your new photo have been saved!',
           timer: 2000,
-          showConfirmButton: true
-        });
-      } else {
-        
-        Swal.fire({
-          icon: 'warning',
-          title: 'Saved with issues',
-          text: 'Profile updated, but we couldn\'t refresh your local data. Please reload the page.',
         });
       }
     } catch (err) {
-      console.error("6. API Error:", err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Update Failed',
-        text: err.response?.data?.error || "Something went wrong",
-      });
+      console.error("Update Error:", err);
+      Swal.fire({ icon: 'error', title: 'Update Failed', text: err.message });
     } finally {
       setLoading(false);
     }
@@ -102,19 +129,39 @@ export const Profile = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
               <div className="text-center">
-                <div className="relative inline-block">
-                  <label className="cursor-pointer group">
-                    <input type="file" accept="image/*" className="hidden" />
-                    <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg group-hover:border-primary transition-all duration-300">
+         <div className="relative inline-block">
+ <label className="cursor-pointer group">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleImageSelect} // Changed to local select
+                  />
+                  
+                  <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg group-hover:border-primary transition-all duration-300 relative">
+                    {/* PRIORITY: Preview URL > Saved URL > Default Icon */}
+                    {preview ? (
+                      <img src={preview} className="w-full h-full object-cover" alt="Preview" />
+                    ) : user?.profile_image ? (
+                      <img src={user.profile_image} className="w-full h-full object-cover" alt="Profile" />
+                    ) : (
                       <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
                         <FaUser className="text-4xl text-primary/60" />
                       </div>
-                    </div>
-                    <div className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <FaCamera size={14} />
-                    </div>
-                  </label>
-                </div>
+                    )}
+
+                    {loading && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg">
+                    <FaCamera size={14} />
+                  </div>
+                </label>
+</div>
                 
                 <h2 className="text-xl font-semibold text-gray-900 mt-4">{user?.name}</h2>
                 <p className="text-sm text-gray-500">{user?.email}</p>
