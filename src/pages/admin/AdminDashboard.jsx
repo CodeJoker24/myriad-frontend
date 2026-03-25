@@ -9,8 +9,24 @@ const AdminDashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
 
-  const user = JSON.parse(localStorage.getItem('user'));
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      const updatedData = JSON.parse(localStorage.getItem('user'));
+      setUser(updatedData);
+    };
+
+    window.addEventListener("userUpdated", handleUserUpdate);
+    
+    
+    window.addEventListener("storage", handleUserUpdate);
+
+    return () => {
+      window.removeEventListener("userUpdated", handleUserUpdate);
+      window.removeEventListener("storage", handleUserUpdate);
+    };
+  }, []);
 
   const handleLogout = () => {
     Swal.fire({
@@ -169,13 +185,17 @@ const AdminDashboard = () => {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-3 hover:bg-gray-100 rounded-lg p-2"
                 >
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <FaUserCircle className="text-primary text-xl" />
-                  </div>
-                  <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium">{user?.name || 'Admin User'}</p>
-                    <p className="text-xs text-gray-500">{user?.email || 'admin@myriad.com'}</p>
-                  </div>
+                <div className="w-9 h-9 bg-primary/10 rounded-full overflow-hidden flex items-center justify-center border border-gray-200">
+              {user?.profile_image ? (
+             <img 
+             src={user.profile_image} 
+             alt="Profile" 
+              className="w-full h-full object-cover" 
+              />
+            ) : (
+            <FaUserCircle className="text-primary text-2xl" />
+            )}
+            </div>
                   <FaChevronDown className={`text-xs transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>
 

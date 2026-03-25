@@ -87,6 +87,7 @@ const handleImageSelect = (event) => {
         const updatedUser = { ...user, ...response.data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
 
+        window.dispatchEvent(new Event("userUpdated"));
        
         setPreview(null);
         setSelectedFile(null);
