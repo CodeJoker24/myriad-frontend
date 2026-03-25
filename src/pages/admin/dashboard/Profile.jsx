@@ -143,7 +143,7 @@ const handleImageSelect = (event) => {
                     ) : user?.profile_image ? (
                       <img src={user.profile_image} className="w-full h-full object-cover" alt="Profile" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                      <div className="w-full h-full bg-linear-to-br from-primary/10 to-primary/5 flex items-center justify-center">
                         <FaUser className="text-4xl text-primary/60" />
                       </div>
                     )}
