@@ -18,6 +18,8 @@ export const Profile = () => {
   const [preview, setPreview] = useState(null); 
   const [selectedFile, setSelectedFile] = useState(null);
 
+
+
 const handleImageSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -28,10 +30,10 @@ const handleImageSelect = (event) => {
     if(preview){
       URL.revokeObjectURL(preview);
     }
-    // Set the file to state to be uploaded LATER in the Update function
+
     setSelectedFile(file);
 
-    // Generate a local URL so the developer (you!) sees the preview instantly
+
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
   };
@@ -49,9 +51,8 @@ const handleImageSelect = (event) => {
     }
 
     try {
-      let finalImageUrl = user?.profile_image; // Default to existing image
-
-      // --- STEP A: UPLOAD TO SUPABASE (Only if a new file was picked) ---
+      let finalImageUrl = user?.profile_image; 
+ 
    if (selectedFile) {
     const fileExt = selectedFile.name.split('.').pop();
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -62,19 +63,16 @@ const handleImageSelect = (event) => {
 
     if (uploadError) throw uploadError;
 
-    // Get the URL
+  
     const { data: urlData } = supabase.storage
       .from('avatars')
-      .getPublicUrl(fileName); // No 'avatars/' prefix here, just fileName
+      .getPublicUrl(fileName); 
       
     finalImageUrl = urlData.publicUrl;
-    console.log("NEW PUBLIC URL:", finalImageUrl); // Verify this shows a real link
-}
-        console.log("SENDING TO BACKEND:", {
-  name,
-  profile_image: finalImageUrl // Check if this is a URL or null here!
-});
-      // --- STEP B: UPDATE BACKEND ---
+  
+      }
+   
+  
       const response = await API.put(`/api/auth_routes/update-profile/${user.id}`, {
         name,
         email,
@@ -82,14 +80,14 @@ const handleImageSelect = (event) => {
         dateOfBirth,
         stateOfOrigin,
         address,
-        profile_image: finalImageUrl // Sends the NEW url or the OLD one
+        profile_image: finalImageUrl 
       });
 
       if (response.data && response.data.user) {
         const updatedUser = { ...user, ...response.data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
 
-        // Clean up
+       
         setPreview(null);
         setSelectedFile(null);
 
@@ -135,11 +133,11 @@ const handleImageSelect = (event) => {
                     type="file" 
                     accept="image/*" 
                     className="hidden" 
-                    onChange={handleImageSelect} // Changed to local select
+                    onChange={handleImageSelect} 
                   />
                   
                   <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg group-hover:border-primary transition-all duration-300 relative">
-                    {/* PRIORITY: Preview URL > Saved URL > Default Icon */}
+                 
                     {preview ? (
                       <img src={preview} className="w-full h-full object-cover" alt="Preview" />
                     ) : user?.profile_image ? (
