@@ -55,11 +55,13 @@ const handleImageSelect = (event) => {
  
    if (selectedFile) {
     const fileExt = selectedFile.name.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+   const fileName = `profile-${user.id}.${fileExt}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(fileName, selectedFile);
+      .upload(fileName, selectedFile, {
+        upsert:true
+      });
 
     if (uploadError) throw uploadError;
 
@@ -68,7 +70,7 @@ const handleImageSelect = (event) => {
       .from('avatars')
       .getPublicUrl(fileName); 
       
-    finalImageUrl = urlData.publicUrl;
+    finalImageUrl = `${urlData.publicUrl}?t=${Date.now()}`;
   
       }
    
