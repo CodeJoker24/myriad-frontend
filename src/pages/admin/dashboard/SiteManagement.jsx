@@ -1,391 +1,539 @@
-import { useState } from 'react';
-import { FaImage, FaSave, FaEdit, FaTrash, FaPlus, FaGlobe, FaInfoCircle, FaBullseye, FaEye, FaNewspaper,FaQuoteRight, FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock } from 'react-icons/fa';
-
+import { useState, useEffect} from 'react';
+import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaEdit, FaCamera, FaLink, FaBullseye, FaEye,FaMapMarkerAlt, FaPhoneAlt, FaFacebook, FaInstagram, FaTwitter, FaLinkedin, FaClipboardList} from 'react-icons/fa';
+import { supabase } from '../../../db';
+import Swal from 'sweetalert2';
 export const SiteManagement = () => {
-const [activeTab, setActiveTab] = useState('homepage');
-
-  // State for homepage carousel
-  const [carouselImages, setCarouselImages] = useState([
-    { id: 1, url: '/images/hero1.jpg', title: 'Welcome to Myriad Academy', active: true },
-    { id: 2, url: '/images/hero2.jpg', title: 'Excellence in Education', active: false },
-    { id: 3, url: '/images/hero3.jpg', title: 'Future Leaders', active: false },
-  ]);
-
-  // State for about us content
-  const [aboutContent, setAboutContent] = useState({
-    title: 'About Myriad Academy',
-    content: 'Founded with a vision to revolutionize education, Myriad Academy has been at the forefront of academic innovation since our establishment. We believe in nurturing not just academic excellence but also character, creativity, and critical thinking.',
-    mission: 'To empower students with knowledge, skills, and values that prepare them for lifelong success in an ever-changing world.',
-    vision: 'To be recognized as a premier institution that transforms education through innovation, inclusion, and inspiration.',
-    missionIcon: <FaBullseye />,
-    visionIcon: <FaEye />
+  const [activeTab, setActiveTab] = useState('hero');
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [hero, setHero] = useState({ 
+    title: '',
+    subtitle: '',
+    button_enroll_text: '',
+    button_explore_text: '',
+    image_url: ''
   });
 
-  // State for announcements
-  const [announcements, setAnnouncements] = useState([
-    { id: 1, title: 'School Resumption Date', content: 'School resumes on September 15th, 2024', date: '2024-08-01', pinned: true },
-    { id: 2, title: 'PTA Meeting', content: 'PTA meeting holds on August 20th at 10am', date: '2024-08-05', pinned: false },
-  ]);
-
-  // State for testimonials
-  const [testimonials, setTestimonials] = useState([
-    { id: 1, name: 'Mrs. Adebayo', role: 'Parent', content: 'Myriad Academy has transformed my child\'s approach to learning.', rating: 5, image: '' },
-    { id: 2, name: 'Mr. Johnson', role: 'Parent', content: 'The teachers are dedicated and the curriculum is excellent.', rating: 5, image: '' },
-  ]);
-
-  // State for contact info
-  const [contactInfo, setContactInfo] = useState({
-    address: 'Omoloye Oke-ore Along, Owode Idiroko Rd, Ogun State, Nigeria',
-    phone1: '08034791741',
-    phone2: '08038005822',
-    email: 'myriadacademy1022@gmail.com',
-    hours: 'Monday - Thursday: 8:00 AM - 4:00 PM, Friday: 9:00 AM - 12:00 PM, Weekends: Closed',
-    facebook: 'https://facebook.com/myriadacademy',
-    twitter: 'https://twitter.com/myriadacademy',
-    instagram: 'https://instagram.com/myriadacademy',
-    linkedin: 'https://linkedin.com/school/myriad-academy'
-  });
-
-  // State for editing
-  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
-  const [editingTestimonial, setEditingTestimonial] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [modalType, setModalType] = useState('');
-
-  const tabs = [
-    { id: 'homepage', name: 'Homepage Images', icon: <FaImage /> },
-    { id: 'about', name: 'About Us', icon: <FaInfoCircle /> },
-    { id: 'announcements', name: 'Announcements', icon: <FaNewspaper /> },
+  const menuItems = [
+    { id: 'hero', name: 'Hero Header', icon: <FaImage /> },
+    { id: 'about', name: 'About Mission', icon: <FaInfoCircle /> },
+    { id: 'stats', name: 'School Stats', icon: <FaChartBar /> },
     { id: 'testimonials', name: 'Testimonials', icon: <FaQuoteRight /> },
-    { id: 'contact', name: 'Contact Info', icon: <FaGlobe /> },
+    { id: 'contact', name: 'Contact & Socials', icon: <FaEnvelope /> },
+    { id: 'admissions', name: 'Admissions', icon: <FaClipboardList /> },
   ];
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Site Management</h1>
-        <p className="text-gray-600">Manage your website content and appearance</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-md mb-6">
-        <div className="border-b overflow-x-auto">
-          <nav className="flex">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-b-2 border-primary text-primary'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.icon}
-                {tab.name}
-              </button>
-            ))}
-          </nav>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50/50 -m-6">
+      
+      <div className="w-full md:w-72 bg-[#1e293b] text-white p-6 shadow-xl z-20">
+        <div className="mb-10 px-2">
+          <h2 className="text-xl font-bold tracking-tight">Site Management</h2>
+          <p className="text-slate-400 text-xs mt-1">Landing Page Controller</p>
         </div>
+        
+        <nav className="space-y-2">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === item.id
+                  ? 'bg-primary text-white shadow-lg shadow-primary/30 translate-x-2'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <span className="text-lg">{item.icon}</span>
+              {item.name}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      {/* Tab Content */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        {/* Homepage Images Tab */}
-        {activeTab === 'homepage' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-800">Homepage Carousel Images</h2>
-              <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
-                <FaPlus /> Add Image
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {carouselImages.map((image) => (
-                <div key={image.id} className="border rounded-lg overflow-hidden">
-                  <div className="h-40 bg-gray-200 flex items-center justify-center">
-                    {image.url ? (
-                      <img src={image.url} alt={image.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <FaImage className="text-4xl text-gray-400" />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <input
-                      type="text"
-                      value={image.title}
-                      className="w-full px-3 py-2 border rounded-lg mb-2"
-                      placeholder="Image title"
-                    />
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={image.active} className="text-primary" />
-                        <span className="text-sm">Active</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
-                          <FaEdit />
-                        </button>
-                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      
+      <div className="flex-1 p-4 md:p-10 overflow-y-auto">
+        <div className="max-w-5xl mx-auto">
+          
+          <div className="flex justify-between items-end mb-8 border-b pb-6 border-gray-200">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800 capitalize">{activeTab} Section</h1>
+              <p className="text-slate-500 mt-1">Live updates for your landing page components.</p>
             </div>
           </div>
-        )}
 
-        {/* About Us Tab */}
-        {activeTab === 'about' && (
-          <div>
-            <h2 className="text-lg font-bold text-gray-800 mb-6">About Us Content</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">About Title</label>
-                <input
-                  type="text"
-                  value={aboutContent.title}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">About Content</label>
-                <textarea
-                  value={aboutContent.content}
-                  rows="4"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Mission Statement</label>
-                <textarea
-                  value={aboutContent.mission}
-                  rows="3"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Vision Statement</label>
-                <textarea
-                  value={aboutContent.vision}
-                  rows="3"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none"
-                />
-              </div>
-
-              <button className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors">
-                <FaSave /> Save Changes
-              </button>
-            </div>
+         
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {activeTab === 'hero' && <HeroUI />}
+            {activeTab === 'about' && <AboutUI />}
+            {activeTab === 'stats' && <StatsUI />}
+            {activeTab === 'testimonials' && <TestimonialsUI />}
+            {activeTab === 'contact' && <ContactUI />}
+            {activeTab === 'admissions' && <AdmissionsUI />}
           </div>
-        )}
-
-        {/* Announcements Tab */}
-        {activeTab === 'announcements' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-800">Announcements</h2>
-              <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
-                <FaPlus /> New Announcement
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {announcements.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{item.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{item.content}</p>
-                      <p className="text-xs text-gray-400 mt-2">Posted: {item.date}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {item.pinned && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Pinned</span>}
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
-                        <FaEdit />
-                      </button>
-                      <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Testimonials Tab */}
-        {activeTab === 'testimonials' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-800">Testimonials</h2>
-              <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
-                <FaPlus /> Add Testimonial
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {testimonials.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        <FaQuoteRight className="text-primary" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                      <p className="text-xs text-gray-500">{item.role}</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">"{item.content}"</p>
-                  <div className="flex justify-between items-center">
-                    <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i}>{i < item.rating ? '★' : '☆'}</span>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
-                        <FaEdit />
-                      </button>
-                      <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Contact Info Tab */}
-        {activeTab === 'contact' && (
-          <div>
-            <h2 className="text-lg font-bold text-gray-800 mb-6">Contact Information</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                  <div className="relative">
-                    <FaMapMarkerAlt className="absolute left-3 top-4 text-gray-400" />
-                    <textarea
-                      value={contactInfo.address}
-                      rows="3"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number 1</label>
-                  <div className="relative">
-                    <FaPhone className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      value={contactInfo.phone1}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number 2</label>
-                  <div className="relative">
-                    <FaPhone className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="text"
-                      value={contactInfo.phone2}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <div className="relative">
-                    <FaEnvelope className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="email"
-                      value={contactInfo.email}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">School Hours</label>
-                  <div className="relative">
-                    <FaClock className="absolute left-3 top-4 text-gray-400" />
-                    <textarea
-                      value={contactInfo.hours}
-                      rows="3"
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Facebook URL</label>
-                  <input
-                    type="text"
-                    value={contactInfo.facebook}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Twitter URL</label>
-                  <input
-                    type="text"
-                    value={contactInfo.twitter}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Instagram URL</label>
-                  <input
-                    type="text"
-                    value={contactInfo.instagram}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">LinkedIn URL</label>
-                  <input
-                    type="text"
-                    value={contactInfo.linkedin}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <button className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary-dark transition-colors">
-                <FaSave /> Save Contact Information
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+
+const HeroUI = () => {
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [hero, setHero] = useState({
+    title: '',
+    subtitle: '',
+    button_enroll_text: '',
+    button_explore_text: '',
+    image_url: ''
+  });
+
+  
+  useEffect(() => {
+    const fetchHero = async () => {
+      setFetching(true);
+      const { data, error } = await supabase
+        .from('landing_hero')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      
+      if (data) setHero(data);
+      setFetching(false);
+    };
+    fetchHero();
+  }, []);
+
+  
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `hero_main_${Math.random()}.${fileExt}`; 
+      const filePath = `${fileName}`;
+
+      
+      const { error: uploadError } = await supabase.storage
+        .from('site-content')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+     
+      const { data } = supabase.storage
+        .from('site-content')
+        .getPublicUrl(filePath);
+
+      setHero({ ...hero, image_url: data.publicUrl });
+      Swal.fire('Uploaded!', 'Image ready. Don’t forget to Save Changes.', 'success');
+    } catch (error) {
+      Swal.fire('Upload Failed', error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleSave = async () => {
+    setLoading(true);
+    const { error } = await supabase
+      .from('landing_hero')
+      .upsert({ 
+        id: 1, 
+        ...hero,
+        updated_at: new Date() 
+      });
+
+    setLoading(false);
+    if (!error) {
+      Swal.fire('Live!', 'Hero section has been updated.', 'success');
+    } else {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
+  if (fetching) return <div className="text-center p-10 font-bold text-slate-400">Loading Hero Data...</div>;
+
+  return (
+    <div className="grid lg:grid-cols-3 gap-8">
+      {/* Form Side */}
+      <div className="lg:col-span-2 space-y-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-bold text-slate-700">Main Headline</label>
+            <textarea 
+              rows="3" 
+              value={hero.title}
+              onChange={(e) => setHero({...hero, title: e.target.value})}
+              className="w-full mt-2 p-4 bg-gray-50 border-none rounded-2xl text-xl font-semibold focus:ring-2 focus:ring-primary/20 outline-none" 
+            />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-slate-700">Sub-headline</label>
+            <textarea 
+              rows="3" 
+              value={hero.subtitle}
+              onChange={(e) => setHero({...hero, subtitle: e.target.value})}
+              className="w-full mt-2 p-4 bg-gray-50 border-none rounded-2xl text-slate-600 focus:ring-2 focus:ring-primary/20 outline-none" 
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <input 
+              type="text" 
+              value={hero.button_enroll_text}
+              onChange={(e) => setHero({...hero, button_enroll_text: e.target.value})}
+              placeholder="Enroll Button Text"
+              className="p-3 bg-gray-50 border-none rounded-xl outline-none" 
+            />
+            <input 
+              type="text" 
+              value={hero.button_explore_text}
+              onChange={(e) => setHero({...hero, button_explore_text: e.target.value})}
+              placeholder="Explore Button Text"
+              className="p-3 bg-gray-50 border-none rounded-xl outline-none" 
+            />
+          </div>
+        </div>
+        <button 
+          onClick={handleSave}
+          disabled={loading}
+          className="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark transition-all disabled:opacity-50"
+        >
+          {loading ? 'Processing...' : <><FaSave /> Save Hero Changes</>}
+        </button>
+      </div>
+
+    
+      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit">
+        <label className="text-sm font-bold text-slate-700 block mb-4">Hero Image</label>
+        <div 
+          onClick={() => document.getElementById('hero-upload').click()}
+          className="relative group rounded-2xl overflow-hidden aspect-video bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-300 hover:border-primary cursor-pointer transition-all"
+        >
+          {hero.image_url ? (
+            <img src={hero.image_url} className="w-full h-full object-cover" alt="Preview" />
+          ) : (
+            <div className="text-center text-slate-400">
+              <FaCamera className="mx-auto text-2xl mb-2" />
+              <p className="text-xs">Click to upload image</p>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+            Change Image
+          </div>
+        </div>
+        <input 
+          id="hero-upload"
+          type="file" 
+          accept="image/*" 
+          className="hidden" 
+          onChange={handleImageUpload} 
+        />
+        <p className="mt-4 text-[10px] text-slate-400 text-center uppercase font-bold tracking-widest">
+          Recommended: 1920x1080
+        </p>
+      </div>
+    </div>
+  );
+};
+
+
+const StatsUI = () => {
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    students_count: 0,
+    courses_count: 0,
+    teachers_count: 0,
+    years_count: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data } = await supabase
+        .from('landing_stats')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      if (data) setStats(data);
+    };
+    fetchStats();
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    const { error } = await supabase
+      .from('landing_stats')
+      .upsert({ id: 1, ...stats });
+    
+    setLoading(false);
+    if (!error) Swal.fire('Updated!', 'Statistics are now live.', 'success');
+    else Swal.fire('Error', error.message, 'error');
+  };
+
+  return (
+    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Happy Students', key: 'students_count' },
+          { label: 'Courses Offered', key: 'courses_count' },
+          { label: 'Qualified Teachers', key: 'teachers_count' },
+          { label: 'Years of Excellence', key: 'years_count' }
+        ].map((item) => (
+          <div key={item.key} className="p-6 bg-slate-50 rounded-2xl text-center border border-slate-100">
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
+              {item.label}
+            </label>
+            <input 
+              type="number" 
+              value={stats[item.key]}
+              onChange={(e) => setStats({...stats, [item.key]: parseInt(e.target.value) || 0})}
+              className="text-3xl font-bold text-primary bg-transparent text-center w-full focus:outline-none" 
+            />
+          </div>
+        ))}
+      </div>
+      <button 
+        onClick={handleSave}
+        disabled={loading}
+        className="mt-8 flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20"
+      >
+        {loading ? 'Saving...' : <><FaSave /> Update Live Counters</>}
+      </button>
+    </div>
+  );
+};
+
+const TestimonialsUI = () => {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ name: '', role: '', content: '', rating: 5 });
+
+  const fetchTestimonials = async () => {
+    const { data } = await supabase.from('landing_testimonials').select('*').order('created_at', { ascending: false });
+    if (data) setList(data);
+  };
+
+  useEffect(() => { fetchTestimonials(); }, []);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.from('landing_testimonials').insert([formData]);
+    setLoading(false);
+    if (!error) {
+      setFormData({ name: '', role: '', content: '', rating: 5 });
+      fetchTestimonials();
+      Swal.fire('Added!', 'Testimonial joined the list.', 'success');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const { error } = await supabase.from('landing_testimonials').delete().eq('id', id);
+    if (!error) fetchTestimonials();
+  };
+
+  return (
+    <div className="space-y-6">
+     
+      <form onSubmit={handleAdd} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 grid md:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          <input type="text" placeholder="Parent Name" className="w-full p-3 bg-gray-50 rounded-xl outline-none" 
+            value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+          <input type="text" placeholder="Role (e.g. Parent)" className="w-full p-3 bg-gray-50 rounded-xl outline-none" 
+            value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} />
+        </div>
+        <textarea placeholder="Feedback content..." className="w-full p-3 bg-gray-50 rounded-xl outline-none" rows="3"
+          value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} required />
+        <button type="submit" disabled={loading} className="md:col-span-2 bg-primary text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+          <FaPlus /> {loading ? 'Adding...' : 'Add Testimonial'}
+        </button>
+      </form>
+
+   
+      <div className="grid md:grid-cols-2 gap-4">
+        {list.map((item) => (
+          <div key={item.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group">
+            <h4 className="font-bold text-slate-800">{item.name}</h4>
+            <p className="text-xs text-primary font-semibold mb-2">{item.role}</p>
+            <p className="text-sm text-slate-500 italic">"{item.content}"</p>
+            <button onClick={() => handleDelete(item.id)} className="absolute top-4 right-4 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+              <FaTrash size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
+const ContactUI = () => {
+  const [loading, setLoading] = useState(false);
+  const [contact, setContact] = useState({
+    email: '', phone: '', phone_2: '', address: '',
+    hours_mon_thu: '', hours_fri: '', hours_sat: '',
+    map_embed_url: ''
+  });
+
+  useEffect(() => {
+    const fetchContact = async () => {
+      const { data } = await supabase.from('landing_contact').select('*').eq('id', 1).single();
+      if (data) {
+        setContact({
+          email: data.email ?? '',
+          phone: data.phone ?? '',
+          phone_2: data.phone_2 ?? '',
+          address: data.address ?? '',
+          hours_mon_thu: data.hours_mon_thu ?? '',
+          hours_fri: data.hours_fri ?? '',
+          hours_sat: data.hours_sat ?? '',
+          map_embed_url: data.map_embed_url ?? ''
+        });
+      }
+    };
+    fetchContact();
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    const { error } = await supabase.from('landing_contact').upsert({ id: 1, ...contact });
+    setLoading(false);
+    if (!error) Swal.fire('Updated!', 'Contact & Hours are now live.', 'success');
+  };
+
+  return (
+    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-8">
+      <div className="grid md:grid-cols-2 gap-10">
+        {/* Left: Communication */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-slate-800">Communication & Address</h3>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone 1 (Primary)</label>
+            <input type="text" value={contact.phone} onChange={e => setContact({...contact, phone: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 rounded-xl outline-none" />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone 2 (Secondary)</label>
+            <input type="text" value={contact.phone_2} onChange={e => setContact({...contact, phone_2: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 rounded-xl outline-none" />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
+            <input type="email" value={contact.email} onChange={e => setContact({...contact, email: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 rounded-xl outline-none" />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Physical Address</label>
+            <textarea value={contact.address} onChange={e => setContact({...contact, address: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 rounded-xl outline-none" rows="2" />
+          </div>
+        </div>
+
+      
+        <div className="space-y-4">
+          <h3 className="font-bold text-slate-800">School Hours</h3>
+          <div className="p-4 bg-blue-50/50 rounded-2xl space-y-3">
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase">Monday - Thursday</label>
+              <input type="text" value={contact.hours_mon_thu} onChange={e => setContact({...contact, hours_mon_thu: e.target.value})} className="w-full mt-1 p-2 bg-white rounded-lg outline-none border border-blue-100" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase">Friday</label>
+              <input type="text" value={contact.hours_fri} onChange={e => setContact({...contact, hours_fri: e.target.value})} className="w-full mt-1 p-2 bg-white rounded-lg outline-none border border-blue-100" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-primary uppercase">Saturday</label>
+              <input type="text" value={contact.hours_sat} onChange={e => setContact({...contact, hours_sat: e.target.value})} className="w-full mt-1 p-2 bg-white rounded-lg outline-none border border-blue-100" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Google Maps Embed URL</label>
+            <input type="text" value={contact.map_embed_url} onChange={e => setContact({...contact, map_embed_url: e.target.value})} className="w-full mt-1 p-3 bg-slate-50 rounded-xl outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={handleSave} disabled={loading} className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition-transform">
+        {loading ? 'Saving...' : 'Save All Contact Details'}
+      </button>
+    </div>
+  );
+};
+
+
+const AdmissionsUI = () => (
+  <div className="space-y-8">
+ 
+    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <FaClipboardList className="text-xl" />
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-800">Admission Deadlines</h3>
+          <p className="text-xs text-slate-500">Update the "TBD" dates shown on the website.</p>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Applications Open', id: 'open' },
+          { label: 'Early Deadline', id: 'early' },
+          { label: 'Regular Deadline', id: 'regular' },
+          { label: 'Classes Begin', id: 'begin' },
+        ].map((date) => (
+          <div key={date.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">
+              {date.label}
+            </label>
+            <input 
+              type="date" 
+              className="w-full bg-transparent font-bold text-slate-700 focus:outline-none" 
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+
+   
+    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="font-bold text-slate-800">Application Steps</h3>
+        <button className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
+          <FaPlus size={12} /> Add Step
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {[
+          { step: 1, title: 'Initial Inquiry', desc: 'Submit an online inquiry form or schedule a physical tour.' },
+          { step: 2, title: 'Entrance Exam', desc: 'Prospective students sit for a standard placement assessment.' }
+        ].map((item) => (
+          <div key={item.step} className="flex gap-4 p-4 rounded-2xl border border-gray-50 hover:bg-slate-50 transition-colors group">
+            <div className="w-10 h-10 shrink-0 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
+              {item.step}
+            </div>
+            <div className="flex-1">
+              <input 
+                type="text" 
+                defaultValue={item.title} 
+                className="block w-full font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0"
+              />
+              <textarea 
+                defaultValue={item.desc} 
+                className="block w-full text-sm text-slate-500 bg-transparent border-none p-0 focus:ring-0 mt-1"
+                rows="2"
+              />
+            </div>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <button className="p-2 text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <button className="w-full mt-8 py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20">
+        <FaSave /> Save Admission Process
+      </button>
+    </div>
+  </div>
+);

@@ -1,6 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../db';
 
 const Stats = () => {
+  const [targets, setTargets] = useState({
+    students: 280,
+    courses: 16,
+    teachers: 15,
+    years: 4
+  });
+
+
   const [students, setStudents] = useState(0);
   const [courses, setCourses] = useState(0);
   const [teachers, setTeachers] = useState(0);
@@ -8,13 +17,28 @@ const Stats = () => {
   const [isVisible, setIsVisible] = useState(false);
   const statsRef = useRef(null);
 
-  const targets = {
-    students: 280,
-    courses: 16,
-    teachers: 15,
-    years: 4
-  };
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data } = await supabase
+        .from('landing_stats')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      
+      if (data) {
+        setTargets({
+          students: data.students_count,
+          courses: data.courses_count,
+          teachers: data.teachers_count,
+          years: data.years_count
+        });
+      }
+    };
+    fetchStats();
+  }, []);
+
+  
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -25,16 +49,12 @@ const Stats = () => {
       { threshold: 0.3 }
     );
 
-    if (statsRef.current) {
-      observer.observe(statsRef.current);
-    }
-
+    if (statsRef.current) observer.observe(statsRef.current);
     return () => {
-      if (statsRef.current) {
-        observer.unobserve(statsRef.current);
-      }
+      if (statsRef.current) observer.unobserve(statsRef.current);
     };
   }, []);
+
 
   useEffect(() => {
     if (!isVisible) return;
@@ -55,47 +75,29 @@ const Stats = () => {
 
       if (currentStep >= steps) {
         clearInterval(timer);
-        setStudents(targets.students);
-        setCourses(targets.courses);
-        setTeachers(targets.teachers);
-        setYears(targets.years);
       }
     }, interval);
 
     return () => clearInterval(timer);
-  }, [isVisible]);
+  }, [isVisible, targets]); 
 
   return (
     <section ref={statsRef} className="py-16 bg-white border-y border-gray-100">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">
-              {students}+
+          {[
+            { val: students, label: 'Happy Students' },
+            { val: courses, label: 'Courses Offered' },
+            { val: teachers, label: 'Qualified Teachers' },
+            { val: years, label: 'Years of Excellence' }
+          ].map((item, idx) => (
+            <div key={idx} className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-primary mb-2">
+                {item.val}+
+              </div>
+              <div className="text-gray-600 font-medium">{item.label}</div>
             </div>
-            <div className="text-gray-600">Happy Students</div>
-          </div>
-
-          <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">
-              {courses}+
-            </div>
-            <div className="text-gray-600">Courses Offered</div>
-          </div>
-
-          <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">
-              {teachers}+
-            </div>
-            <div className="text-gray-600">Qualified Teachers</div>
-          </div>
-
-          <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-primary mb-2">
-              {years}+
-            </div>
-            <div className="text-gray-600">Years of Excellence</div>
-          </div>
+          ))}
         </div>
       </div>
     </section>
