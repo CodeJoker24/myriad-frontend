@@ -1,5 +1,5 @@
 import { useState, useEffect} from 'react';
-import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaEdit, FaCamera, FaLink, FaBullseye, FaEye,FaMapMarkerAlt, FaPhoneAlt, FaFacebook, FaInstagram, FaTwitter, FaLinkedin, FaClipboardList} from 'react-icons/fa';
+import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaEdit, FaCamera, FaLink, FaBullseye, FaEye,FaMapMarkerAlt, FaPhoneAlt, FaFacebook, FaInstagram, FaTwitter, FaLinkedin, FaClipboardList, FaSpinner} from 'react-icons/fa';
 import { supabase } from '../../../db';
 import Swal from 'sweetalert2';
 export const SiteManagement = () => {
@@ -459,81 +459,285 @@ const ContactUI = () => {
   );
 };
 
+const AdmissionsUI = () => {
+  const [loading, setLoading] = useState(false);
+  const [dates, setDates] = useState({
+    open: '',
+    early: '',
+    regular: '',
+    begin: ''
+  });
 
-const AdmissionsUI = () => (
-  <div className="space-y-8">
+  // 1. Fetch the current values from Supabase when the component loads
+  useEffect(() => {
+    const fetchCurrentDates = async () => {
+      const { data } = await supabase
+        .from('admission_dates')
+        .select('*')
+        .eq('id', 1)
+        .single();
+      
+      if (data) {
+        setDates({
+          open: data.applications_open || '',
+          early: data.early_deadline || '',
+          regular: data.regular_deadline || '',
+          begin: data.classes_begin || ''
+        });
+      }
+    };
+    fetchCurrentDates();
+  }, []);
+
+  // 2. Function to save the changes to Supabase
+const handleSave = async () => {
+  setLoading(true);
+  
  
-    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-          <FaClipboardList className="text-xl" />
-        </div>
-        <div>
-          <h3 className="font-bold text-slate-800">Admission Deadlines</h3>
-          <p className="text-xs text-slate-500">Update the "TBD" dates shown on the website.</p>
-        </div>
-      </div>
+  const { error } = await supabase
+    .from('admission_dates')
+    .upsert({
+      id: 1,
+      applications_open: dates.open,     
+      early_deadline: dates.early,       
+      regular_deadline: dates.regular,   
+      classes_begin: dates.begin,        
+      updated_at: new Date()
+    });
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Applications Open', id: 'open' },
-          { label: 'Early Deadline', id: 'early' },
-          { label: 'Regular Deadline', id: 'regular' },
-          { label: 'Classes Begin', id: 'begin' },
-        ].map((date) => (
-          <div key={date.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">
-              {date.label}
-            </label>
-            <input 
-              type="date" 
-              className="w-full bg-transparent font-bold text-slate-700 focus:outline-none" 
-            />
+  setLoading(false);
+
+  if (!error) {
+    Swal.fire({
+      title: 'Success!',
+      text: 'Dates updated on the website',
+      icon: 'success',
+      confirmButtonColor: '#3b82f6'
+    });
+  } else {
+    console.error("Supabase Error:", error); 
+    Swal.fire('Error', `Update failed: ${error.message}`, 'error');
+  }
+};
+
+  return (
+    <div className="space-y-8">
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+            <FaClipboardList className="text-xl" />
           </div>
-        ))}
-      </div>
-    </div>
+          <div>
+            <h3 className="font-bold text-slate-800">Admission Deadlines</h3>
+            <p className="text-xs text-slate-500">Update the "TBD" dates shown on the website.</p>
+          </div>
+        </div>
 
-   
-    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="font-bold text-slate-800">Application Steps</h3>
-        <button className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
-          <FaPlus size={12} /> Add Step
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Applications Open', id: 'open' },
+            { label: 'Early Deadline', id: 'early' },
+            { label: 'Regular Deadline', id: 'regular' },
+            { label: 'Classes Begin', id: 'begin' },
+          ].map((date) => (
+            <div key={date.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">
+                {date.label}
+              </label>
+              <input 
+                type="text" 
+                value={dates[date.id]}
+                onChange={(e) => setDates({ ...dates, [date.id]: e.target.value })}
+                placeholder="TBD"
+                className="w-full bg-transparent font-bold text-slate-700 focus:outline-none" 
+              />
+            </div>
+          ))}
+        </div>
+        
+        <button 
+          onClick={handleSave}
+          disabled={loading}
+          className="mt-6 px-6 py-2 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors flex items-center gap-2"
+        >
+          {loading ? <FaSpinner className="animate-spin" /> : <FaSave />} 
+          Update Dates
         </button>
       </div>
 
-      <div className="space-y-4">
-        {[
-          { step: 1, title: 'Initial Inquiry', desc: 'Submit an online inquiry form or schedule a physical tour.' },
-          { step: 2, title: 'Entrance Exam', desc: 'Prospective students sit for a standard placement assessment.' }
-        ].map((item) => (
-          <div key={item.step} className="flex gap-4 p-4 rounded-2xl border border-gray-50 hover:bg-slate-50 transition-colors group">
-            <div className="w-10 h-10 shrink-0 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
-              {item.step}
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-bold text-slate-800">Application Steps</h3>
+          <button className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
+            <FaPlus size={12} /> Add Step
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            { step: 1, title: 'Initial Inquiry', desc: 'Submit an online inquiry form or schedule a physical tour.' },
+            { step: 2, title: 'Entrance Exam', desc: 'Prospective students sit for a standard placement assessment.' }
+          ].map((item) => (
+            <div key={item.step} className="flex gap-4 p-4 rounded-2xl border border-gray-50 hover:bg-slate-50 transition-colors group">
+              <div className="w-10 h-10 shrink-0 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
+                {item.step}
+              </div>
+              <div className="flex-1">
+                <input 
+                  type="text" 
+                  defaultValue={item.title} 
+                  className="block w-full font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0"
+                />
+                <textarea 
+                  defaultValue={item.desc} 
+                  className="block w-full text-sm text-slate-500 bg-transparent border-none p-0 focus:ring-0 mt-1"
+                  rows="2"
+                />
+              </div>
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="p-2 text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
+              </div>
             </div>
-            <div className="flex-1">
-              <input 
-                type="text" 
-                defaultValue={item.title} 
-                className="block w-full font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0"
-              />
-              <textarea 
-                defaultValue={item.desc} 
-                className="block w-full text-sm text-slate-500 bg-transparent border-none p-0 focus:ring-0 mt-1"
-                rows="2"
-              />
-            </div>
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="p-2 text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        
+        <button className="w-full mt-8 py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20">
+          <FaSave /> Save Admission Process
+        </button>
       </div>
+    </div>
+  );
+};
+
+
+const AboutUI = () => {
+  const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState({
+    about_text_1: '',
+    about_text_2: '',
+    mission_text: '',
+    vision_text: '',
+    image_url: '' // Make sure this is in your state
+  });
+
+  useEffect(() => {
+    const fetchAbout = async () => {
+      const { data } = await supabase.from('about_content').select('*').eq('id', 1).single();
+      if (data) setContent(data);
+    };
+    fetchAbout();
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    const { error } = await supabase.from('about_content').upsert({ id: 1, ...content });
+    setLoading(false);
+    if (!error) Swal.fire('Success', 'About content updated!', 'success');
+  };
+
+  const handleImageUpload = async (e, folder) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('school-images')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      Swal.fire('Error', 'Upload failed', 'error');
+      setLoading(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from('school-images').getPublicUrl(filePath);
+    setContent({ ...content, image_url: data.publicUrl });
+    setLoading(false);
+    Swal.fire('Uploaded!', 'Image ready to save.', 'success');
+  };
+
+  return (
+    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+      <h3 className="text-xl font-bold text-slate-800">Edit About Page</h3>
       
-      <button className="w-full mt-8 py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20">
-        <FaSave /> Save Admission Process
+      {/* --- NEW IMAGE SECTION --- */}
+      <div>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">About Image</label>
+        <div className="mt-2 flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+          <div className="w-24 h-24 rounded-xl overflow-hidden shadow-sm bg-white shrink-0">
+            <img 
+              src={content.image_url || "/api/placeholder/400/320"} 
+              alt="Preview" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          <label className="flex-1 cursor-pointer">
+            <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 text-center hover:bg-slate-50 transition-colors">
+              <span className="text-sm font-bold text-slate-600">
+                {loading ? 'Processing...' : 'Change Photo'}
+              </span>
+            </div>
+            <input 
+              type="file" 
+              className="hidden" 
+              onChange={(e) => handleImageUpload(e, 'about')} 
+              disabled={loading}
+              accept="image/*"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* --- TEXT SECTION --- */}
+      <div className="space-y-4">
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase">About Paragraph 1</label>
+          <textarea 
+            value={content.about_text_1} 
+            onChange={e => setContent({...content, about_text_1: e.target.value})}
+            className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[100px]"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase">About Paragraph 2</label>
+          <textarea 
+            value={content.about_text_2} 
+            onChange={e => setContent({...content, about_text_2: e.target.value})}
+            className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[100px]"
+          />
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase">Our Mission</label>
+            <textarea 
+              value={content.mission_text} 
+              onChange={e => setContent({...content, mission_text: e.target.value})}
+              className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[80px]"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase">Our Vision</label>
+            <textarea 
+              value={content.vision_text} 
+              onChange={e => setContent({...content, vision_text: e.target.value})}
+              className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[80px]"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={handleSave} 
+        disabled={loading} 
+        className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-transform"
+      >
+        {loading ? 'Please wait...' : 'Save All Changes'}
       </button>
     </div>
-  </div>
-);
+  );
+};
