@@ -407,7 +407,7 @@ const ContactUI = () => {
   return (
     <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-8">
       <div className="grid md:grid-cols-2 gap-10">
-        {/* Left: Communication */}
+        
         <div className="space-y-4">
           <h3 className="font-bold text-slate-800">Communication & Address</h3>
           <div>
@@ -468,7 +468,7 @@ const AdmissionsUI = () => {
     begin: ''
   });
 
-  // 1. Fetch the current values from Supabase when the component loads
+ 
   useEffect(() => {
     const fetchCurrentDates = async () => {
       const { data } = await supabase
@@ -617,7 +617,7 @@ const AboutUI = () => {
     about_text_2: '',
     mission_text: '',
     vision_text: '',
-    image_url: '' // Make sure this is in your state
+    image_url: '' 
   });
 
   useEffect(() => {
@@ -700,7 +700,7 @@ const AboutUI = () => {
           <textarea 
             value={content.about_text_1} 
             onChange={e => setContent({...content, about_text_1: e.target.value})}
-            className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[100px]"
+            className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-25"
           />
         </div>
         <div>
@@ -708,7 +708,7 @@ const AboutUI = () => {
           <textarea 
             value={content.about_text_2} 
             onChange={e => setContent({...content, about_text_2: e.target.value})}
-            className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[100px]"
+            className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-25"
           />
         </div>
         <div className="grid md:grid-cols-2 gap-4">
@@ -717,7 +717,7 @@ const AboutUI = () => {
             <textarea 
               value={content.mission_text} 
               onChange={e => setContent({...content, mission_text: e.target.value})}
-              className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[80px]"
+              className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-20"
             />
           </div>
           <div>
@@ -725,7 +725,7 @@ const AboutUI = () => {
             <textarea 
               value={content.vision_text} 
               onChange={e => setContent({...content, vision_text: e.target.value})}
-              className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-[80px]"
+              className="w-full mt-1 p-3 bg-slate-50 border border-slate-100 rounded-xl min-h-20"
             />
           </div>
         </div>
