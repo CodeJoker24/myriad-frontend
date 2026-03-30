@@ -1,5 +1,5 @@
 import { useState, useEffect} from 'react';
-import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaEdit, FaCamera, FaLink, FaBullseye, FaEye,FaMapMarkerAlt, FaPhoneAlt, FaFacebook, FaInstagram, FaTwitter, FaLinkedin, FaClipboardList, FaSpinner} from 'react-icons/fa';
+import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaEdit, FaCamera, FaClipboardList, FaSpinner} from 'react-icons/fa';
 import { supabase } from '../../../db';
 import Swal from 'sweetalert2';
 export const SiteManagement = () => {

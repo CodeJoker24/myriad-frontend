@@ -8,7 +8,7 @@ const About = () => {
     about_text_2: 'Our holistic approach...',
     mission_text: 'To empower students...',
     vision_text: 'To be recognized as...',
-    image_url: null // Added to state
+    image_url: null 
   });
 
   useEffect(() => {
