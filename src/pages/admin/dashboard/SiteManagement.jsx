@@ -1,11 +1,9 @@
 import { useState, useEffect} from 'react';
-import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaEdit, FaCamera, FaClipboardList, FaSpinner} from 'react-icons/fa';
+import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaCamera, FaClipboardList, FaSpinner} from 'react-icons/fa';
 import { supabase } from '../../../db';
 import Swal from 'sweetalert2';
 export const SiteManagement = () => {
   const [activeTab, setActiveTab] = useState('hero');
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
   const [hero, setHero] = useState({ 
     title: '',
     subtitle: '',
@@ -69,7 +67,7 @@ export const SiteManagement = () => {
             {activeTab === 'testimonials' && <TestimonialsUI />}
             {activeTab === 'contact' && <ContactUI />}
             {activeTab === 'admissions' && <AdmissionsUI />}
-          </div>
+          </div>  
         </div>
       </div>
     </div>
@@ -106,35 +104,45 @@ const HeroUI = () => {
 
   
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    try {
-      setLoading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `hero_main_${Math.random()}.${fileExt}`; 
-      const filePath = `${fileName}`;
+  if(file.size > 2 * 1024 * 1024){
+    return Swal.fire('Too large', 'Please upload an image smaller than 2mb', 'warning')
+  }
+  try {
+    setLoading(true);
+    
+   
+    const filePath = `hero_main_static.png`; 
 
-      
-      const { error: uploadError } = await supabase.storage
-        .from('site-content')
-        .upload(filePath, file);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('site-content')
+      .upload(filePath, file, { 
+        upsert: true,
+        contentType: file.type,
+      });
 
-      if (uploadError) throw uploadError;
+    if (uploadError) throw uploadError;
 
-     
-      const { data } = supabase.storage
-        .from('site-content')
-        .getPublicUrl(filePath);
+    
+    const { data } = supabase.storage
+      .from('site-content')
+      .getPublicUrl(filePath);
 
-      setHero({ ...hero, image_url: data.publicUrl });
-      Swal.fire('Uploaded!', 'Image ready. Don’t forget to Save Changes.', 'success');
-    } catch (error) {
-      Swal.fire('Upload Failed', error.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+    
+    const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+
+    setHero(prev=>({...prev, image_url:finalUrl}));
+    Swal.fire('Updated!', 'New image is ready. Save to make it live.', 'success');
+
+  } catch (error) {
+    Swal.fire('Error', error.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   const handleSave = async () => {
@@ -330,11 +338,39 @@ const TestimonialsUI = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    const { error } = await supabase.from('landing_testimonials').delete().eq('id', id);
-    if (!error) fetchTestimonials();
-  };
+ const handleDelete = async (id) => {
+  const confirm = await Swal.fire({
+    title: 'Delete this testimonial?',
+    text: "This action cannot be undone.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Yes, delete it'
+  });
 
+  if (!confirm.isConfirmed) return;
+
+  try {
+    setLoading(true);
+
+    const { error } = await supabase
+      .from('landing_testimonials')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    await fetchTestimonials();
+
+    Swal.fire('Deleted!', 'Testimonial has been removed.', 'success');
+
+  } catch (error) {
+    Swal.fire('Error', error.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="space-y-6">
      
@@ -461,150 +497,103 @@ const ContactUI = () => {
 
 const AdmissionsUI = () => {
   const [loading, setLoading] = useState(false);
-  const [dates, setDates] = useState({
-    open: '',
-    early: '',
-    regular: '',
-    begin: ''
+  const [dates, setDates] = useState({ 
+    open: '', 
+    early: '', 
+    regular: '', 
+    begin: '' 
   });
 
- 
   useEffect(() => {
-    const fetchCurrentDates = async () => {
-      const { data } = await supabase
-        .from('admission_dates')
-        .select('*')
-        .eq('id', 1)
-        .single();
-      
-      if (data) {
-        setDates({
-          open: data.applications_open || '',
-          early: data.early_deadline || '',
-          regular: data.regular_deadline || '',
-          begin: data.classes_begin || ''
-        });
-      }
-    };
     fetchCurrentDates();
   }, []);
 
-  // 2. Function to save the changes to Supabase
-const handleSave = async () => {
-  setLoading(true);
-  
- 
-  const { error } = await supabase
-    .from('admission_dates')
-    .upsert({
-      id: 1,
-      applications_open: dates.open,     
-      early_deadline: dates.early,       
-      regular_deadline: dates.regular,   
-      classes_begin: dates.begin,        
-      updated_at: new Date()
-    });
+  const fetchCurrentDates = async () => {
+    const { data } = await supabase
+      .from('admission_dates')
+      .select('*')
+      .eq('id', 1)
+      .single();
 
-  setLoading(false);
+    if (data) {
+      setDates({
+        open: data.applications_open || '',
+        early: data.early_deadline || '',
+        regular: data.regular_deadline || '',
+        begin: data.classes_begin || ''
+      });
+    }
+  };
 
-  if (!error) {
-    Swal.fire({
-      title: 'Success!',
-      text: 'Dates updated on the website',
-      icon: 'success',
-      confirmButtonColor: '#3b82f6'
-    });
-  } else {
-    console.error("Supabase Error:", error); 
-    Swal.fire('Error', `Update failed: ${error.message}`, 'error');
-  }
-};
+  const handleSave = async () => {
+    setLoading(true);
+    const { error } = await supabase
+      .from('admission_dates')
+      .upsert({
+        id: 1,
+        applications_open: dates.open,
+        early_deadline: dates.early,
+        regular_deadline: dates.regular,
+        classes_begin: dates.begin,
+        updated_at: new Date()
+      });
+
+    setLoading(false);
+
+    if (!error) {
+      Swal.fire({
+        title: 'Success!',
+        text: 'Admission dates updated on the live site.',
+        icon: 'success',
+        confirmButtonColor: '#3b82f6'
+      });
+    } else {
+      Swal.fire('Error', `Update failed: ${error.message}`, 'error');
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <FaClipboardList className="text-xl" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-800">Admission Deadlines</h3>
-            <p className="text-xs text-slate-500">Update the "TBD" dates shown on the website.</p>
-          </div>
+    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <FaClipboardList className="text-xl" />
         </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Applications Open', id: 'open' },
-            { label: 'Early Deadline', id: 'early' },
-            { label: 'Regular Deadline', id: 'regular' },
-            { label: 'Classes Begin', id: 'begin' },
-          ].map((date) => (
-            <div key={date.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">
-                {date.label}
-              </label>
-              <input 
-                type="text" 
-                value={dates[date.id]}
-                onChange={(e) => setDates({ ...dates, [date.id]: e.target.value })}
-                placeholder="TBD"
-                className="w-full bg-transparent font-bold text-slate-700 focus:outline-none" 
-              />
-            </div>
-          ))}
+        <div>
+          <h3 className="font-bold text-slate-800">Admission Deadlines</h3>
+          <p className="text-xs text-slate-500">Update the dates shown in the Admissions section.</p>
         </div>
-        
-        <button 
-          onClick={handleSave}
-          disabled={loading}
-          className="mt-6 px-6 py-2 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors flex items-center gap-2"
-        >
-          {loading ? <FaSpinner className="animate-spin" /> : <FaSave />} 
-          Update Dates
-        </button>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-slate-800">Application Steps</h3>
-          <button className="text-primary text-sm font-bold flex items-center gap-1 hover:underline">
-            <FaPlus size={12} /> Add Step
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {[
-            { step: 1, title: 'Initial Inquiry', desc: 'Submit an online inquiry form or schedule a physical tour.' },
-            { step: 2, title: 'Entrance Exam', desc: 'Prospective students sit for a standard placement assessment.' }
-          ].map((item) => (
-            <div key={item.step} className="flex gap-4 p-4 rounded-2xl border border-gray-50 hover:bg-slate-50 transition-colors group">
-              <div className="w-10 h-10 shrink-0 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
-                {item.step}
-              </div>
-              <div className="flex-1">
-                <input 
-                  type="text" 
-                  defaultValue={item.title} 
-                  className="block w-full font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0"
-                />
-                <textarea 
-                  defaultValue={item.desc} 
-                  className="block w-full text-sm text-slate-500 bg-transparent border-none p-0 focus:ring-0 mt-1"
-                  rows="2"
-                />
-              </div>
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <button className="w-full mt-8 py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark shadow-lg shadow-primary/20">
-          <FaSave /> Save Admission Process
-        </button>
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Applications Open', id: 'open' },
+          { label: 'Early Deadline', id: 'early' },
+          { label: 'Regular Deadline', id: 'regular' },
+          { label: 'Classes Begin', id: 'begin' },
+        ].map((date) => (
+          <div key={date.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">
+              {date.label}
+            </label>
+            <input 
+              type="text" 
+              value={dates[date.id]}
+              onChange={(e) => setDates({ ...dates, [date.id]: e.target.value })}
+              placeholder="TBD"
+              className="w-full bg-transparent font-bold text-slate-700 focus:outline-none" 
+            />
+          </div>
+        ))}
       </div>
+      
+      <button 
+        onClick={handleSave}
+        disabled={loading}
+        className="mt-8 w-full md:w-auto px-8 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+      >
+        {loading ? <FaSpinner className="animate-spin" /> : <FaSave />} 
+        Save Important Dates
+      </button>
     </div>
   );
 };
@@ -635,30 +624,44 @@ const AboutUI = () => {
     if (!error) Swal.fire('Success', 'About content updated!', 'success');
   };
 
-  const handleImageUpload = async (e, folder) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+   if (file.size > 2 * 1024 * 1024) {
+  return Swal.fire("Error", "Image is too large (Max 2MB)", "error");
+  }
+  try {
     setLoading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${folder}/${fileName}`;
+    
+   
+    const filePath = `about_section_static.png`; 
 
     const { error: uploadError } = await supabase.storage
-      .from('school-images')
-      .upload(filePath, file);
+      .from('site-content')
+      .upload(filePath, file, { 
+        upsert: true,
+        contentType: file.type
+      });
 
-    if (uploadError) {
-      Swal.fire('Error', 'Upload failed', 'error');
-      setLoading(false);
-      return;
-    }
+    if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from('school-images').getPublicUrl(filePath);
-    setContent({ ...content, image_url: data.publicUrl });
+    const { data } = supabase.storage
+      .from('site-content')
+      .getPublicUrl(filePath);
+
+    const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+
+   
+   setContent(prev => ({ ...prev, image_url: finalUrl }));  
+    
+    Swal.fire('Updated!', 'New image is ready. Save to make it live.', 'success');
+
+  } catch (error) {
+    Swal.fire('Error', error.message, 'error');
+  } finally {
     setLoading(false);
-    Swal.fire('Uploaded!', 'Image ready to save.', 'success');
-  };
+  }
+};
 
   return (
     <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
@@ -685,7 +688,7 @@ const AboutUI = () => {
             <input 
               type="file" 
               className="hidden" 
-              onChange={(e) => handleImageUpload(e, 'about')} 
+              onChange={handleImageUpload} 
               disabled={loading}
               accept="image/*"
             />
