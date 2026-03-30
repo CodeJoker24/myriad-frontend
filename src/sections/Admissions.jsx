@@ -1,13 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../db'; // Ensure this path is correct
-import { 
-  FaClipboardList, 
-  FaFileSignature, 
-  FaClipboardCheck, 
-  FaEnvelopeOpenText,
-  FaArrowRight,
-  FaSpinner
-} from 'react-icons/fa';
+import { supabase } from '../db';
+import { FaClipboardList, FaFileSignature, FaClipboardCheck, FaEnvelopeOpenText, FaArrowRight, FaSpinner } from 'react-icons/fa';
 
 const Admissions = () => {
   const [importantDates, setImportantDates] = useState({
@@ -22,7 +15,6 @@ const Admissions = () => {
     const fetchImportantDates = async () => {
       try {
         setLoading(true);
-        // REAL FETCH FROM SUPABASE
         const { data, error } = await supabase
           .from('admission_dates')
           .select('*')
