@@ -14,24 +14,7 @@ export const Teachers = () => {
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
-  useEffect(() => {
-    const sendPing = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        await supabase
-          .from('teachers')
-          .update({ last_seen: new Date().toISOString() })
-          .eq('id', user.id);
-      }
-    };
-
-    sendPing();
-    const interval = setInterval(sendPing, 60000); 
-    return () => clearInterval(interval);
-  }, []);
-
-
+  // Fetch teachers every 5 seconds for live status
   useEffect(() => {
     fetchTeachers();
     const interval = setInterval(fetchTeachers, 5000);
@@ -39,7 +22,6 @@ export const Teachers = () => {
   }, []);
 
   const fetchTeachers = async () => {
-   
     const { data, error } = await supabase
       .from('teachers')
       .select('*')
@@ -104,8 +86,15 @@ export const Teachers = () => {
     if (!lastSeen) return false;
     const lastActive = new Date(lastSeen).getTime();
     const now = new Date().getTime();
-    return (now - lastActive) < 300000; // 5 minutes
+    return (now - lastActive) < 300000; // 5 minutes buffer
   };
+
+  // NEW: Filter logic for search
+  const filteredTeachers = teachers.filter(t => 
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -113,6 +102,17 @@ export const Teachers = () => {
         <button onClick={() => setShowAddModal(true)} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2">
           <FaPlus /> Add Teacher
         </button>
+      </div>
+
+      {/* NEW: Added the Search Input Field */}
+      <div className="mb-6 relative">
+        <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input 
+          type="text" 
+          placeholder="Search by name or email..." 
+          className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm"
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -127,7 +127,7 @@ export const Teachers = () => {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {teachers.map((t) => (
+            {filteredTeachers.map((t) => (
               <tr key={t.id} className="hover:bg-gray-50">
                 <td className="p-4 font-bold text-gray-800">{t.name}</td>
                 <td className="p-4 text-sm text-gray-500">{t.email}<br/>{t.phone}</td>
@@ -155,7 +155,6 @@ export const Teachers = () => {
         </table>
       </div>
 
-      
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-4xl p-8 w-full max-w-lg">
@@ -177,11 +176,11 @@ export const Teachers = () => {
                 <input className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Subjects (Comma separated)</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Subjects</label>
                 <input placeholder="Math, Physics" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.subjects} onChange={e => setFormData({...formData, subjects: e.target.value})} />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Classes (Comma separated)</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Classes</label>
                 <input placeholder="JS1, SS2" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.classes} onChange={e => setFormData({...formData, classes: e.target.value})} />
               </div>
               <button disabled={loading} className="col-span-2 bg-primary text-white py-4 rounded-2xl font-bold mt-4">
