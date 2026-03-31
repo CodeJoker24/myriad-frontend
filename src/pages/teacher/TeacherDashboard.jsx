@@ -77,7 +77,7 @@ const TeacherDashboard = () => {
         sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'
       }`}>
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-linear-to-r from-primary to-primary-dark bg-clip-text text-transparent">
             TEACHER PORTAL
           </span>
           <button 

@@ -118,7 +118,7 @@ const Header = () => {
           {isMobileMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
         </button>
 
-        <div className={`fixed lg:hidden top-0 right-0 h-screen w-[80%] max-w-[400px] bg-white shadow-xl transition-all duration-500 ease-in-out z-40 ${
+        <div className={`fixed lg:hidden top-0 right-0 h-screen w-[80%] max-w-100 bg-white shadow-xl transition-all duration-500 ease-in-out z-40 ${
           isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}>
           <nav className="pt-24 px-6">

@@ -33,7 +33,7 @@ const Hero = () => {
 
   
   return (
-    <section className="relative h-screen min-h-[600px] flex items-center">
+    <section className="relative h-screen min-h-150 flex items-center">
       <div className="absolute inset-0">
         <img 
           src={hero.image_url} 

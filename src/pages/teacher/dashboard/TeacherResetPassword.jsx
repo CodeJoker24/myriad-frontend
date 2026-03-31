@@ -30,8 +30,7 @@ export const TeacherResetPassword = () => {
       });
       if (authError) throw authError;
 
-      // 2. Update the 'is_first_login' flag in the database
-      // We get the current user ID to make sure we update the right row
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { error: dbError } = await supabase
@@ -49,7 +48,7 @@ export const TeacherResetPassword = () => {
         confirmButtonColor: "#3B82F6",
       });
 
-      // 3. Send back to Teacher Sign In
+     
       navigate('/teacher/signin'); 
 
     } catch (err) {

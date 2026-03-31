@@ -143,7 +143,7 @@ export const Teachers = () => {
       {/* Add Teacher Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-[2rem] p-8 w-full max-w-lg">
+          <div className="bg-white rounded-4xl p-8 w-full max-w-lg">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Register Teacher</h2>
               <button onClick={() => setShowAddModal(false)}><FaTimes /></button>
