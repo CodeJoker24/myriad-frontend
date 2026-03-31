@@ -14,7 +14,29 @@ export const Teachers = () => {
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
-  // Fetch teachers every 5 seconds for live status
+  useEffect(() => {
+  const sendPing = async () => {
+    // 1. Get the logged-in teacher's ID
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      // 2. Update their "last_seen" column with the current time
+      await supabase
+        .from('teachers')
+        .update({ last_seen: new Date().toISOString() })
+        .eq('id', user.id);
+    }
+  };
+
+  // Run once immediately on mobile login
+  sendPing();
+
+  // Then run every 60 seconds (Heartbeat)
+  const interval = setInterval(sendPing, 60000); 
+  
+  return () => clearInterval(interval);
+}, []);
+  
   useEffect(() => {
     fetchTeachers();
     const interval = setInterval(fetchTeachers, 5000);
