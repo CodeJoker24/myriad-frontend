@@ -23,7 +23,7 @@ export const TeacherChangePassword = () => {
       }
     });
 
-    // 2. If an email was entered, send the link
+    
     if (email) {
       setLoading(true);
       try {
