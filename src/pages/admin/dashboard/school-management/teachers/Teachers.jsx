@@ -14,28 +14,37 @@ export const Teachers = () => {
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
-  useEffect(() => {
-  const sendPing = async () => {
-    // 1. Get the logged-in teacher's ID
+// Inside TeacherDashboard.jsx
+useEffect(() => {
+  let interval;
+
+  const startHeartbeat = async () => {
+    // Get the current user EVERY time this runs
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      // 2. Update their "last_seen" column with the current time
+      // 1. Immediate Ping
       await supabase
         .from('teachers')
         .update({ last_seen: new Date().toISOString() })
         .eq('id', user.id);
+
+      // 2. Set interval to keep pinging
+      interval = setInterval(async () => {
+        await supabase
+          .from('teachers')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', user.id);
+      }, 60000);
     }
   };
 
-  // Run once immediately on mobile login
-  sendPing();
+  startHeartbeat();
 
-  // Then run every 60 seconds (Heartbeat)
-  const interval = setInterval(sendPing, 60000); 
-  
-  return () => clearInterval(interval);
-}, []);
+  return () => {
+    if (interval) clearInterval(interval);
+  };
+}, []); // This ensures it resets when the component loads for a new login
   
   useEffect(() => {
     fetchTeachers();
