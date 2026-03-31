@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../db';
 import Swal from 'sweetalert2';
 import { 
-  FaPlus, FaTrash, FaSearch, FaTimes, FaSpinner, FaCircle 
+  FaPlus, FaTrash, FaSearch, FaTimes, FaSpinner 
 } from 'react-icons/fa';
 
 export const Teachers = () => {
@@ -14,49 +14,16 @@ export const Teachers = () => {
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
-// Inside TeacherDashboard.jsx
-useEffect(() => {
-  let interval;
-
-  const startHeartbeat = async () => {
-    // Get the current user EVERY time this runs
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      // 1. Immediate Ping
-      await supabase
-        .from('teachers')
-        .update({ last_seen: new Date().toISOString() })
-        .eq('id', user.id);
-
-      // 2. Set interval to keep pinging
-      interval = setInterval(async () => {
-        await supabase
-          .from('teachers')
-          .update({ last_seen: new Date().toISOString() })
-          .eq('id', user.id);
-      }, 60000);
-    }
-  };
-
-  startHeartbeat();
-
-  return () => {
-    if (interval) clearInterval(interval);
-  };
-}, []); // This ensures it resets when the component loads for a new login
-  
+  // Load teachers once on mount
   useEffect(() => {
     fetchTeachers();
-    const interval = setInterval(fetchTeachers, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const fetchTeachers = async () => {
     const { data, error } = await supabase
       .from('teachers')
       .select('*')
-      .order('last_seen', { ascending: false });
+      .order('name', { ascending: true }); // Ordered by name now instead of last_seen
 
     if (data) setTeachers(data);
     if (error) console.error("Error loading teachers:", error.message);
@@ -77,8 +44,8 @@ useEffect(() => {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        subjects: formData.subjects.split(',').map(s => s.trim()),
-        classes: formData.classes.split(',').map(c => c.trim()),
+        subjects: formData.subjects ? formData.subjects.split(',').map(s => s.trim()) : [],
+        classes: formData.classes ? formData.classes.split(',').map(c => c.trim()) : [],
         is_first_login: true
       }]);
       if (dbErr) throw dbErr;
@@ -113,14 +80,6 @@ useEffect(() => {
     }
   };
 
-  const isOnline = (lastSeen) => {
-    if (!lastSeen) return false;
-    const lastActive = new Date(lastSeen).getTime();
-    const now = new Date().getTime();
-    return (now - lastActive) < 300000; // 5 minutes buffer
-  };
-
-  // NEW: Filter logic for search
   const filteredTeachers = teachers.filter(t => 
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -135,13 +94,12 @@ useEffect(() => {
         </button>
       </div>
 
-      {/* NEW: Added the Search Input Field */}
       <div className="mb-6 relative">
         <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <input 
           type="text" 
           placeholder="Search by name or email..." 
-          className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm"
+          className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm outline-none focus:ring-2 focus:ring-primary/20"
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
@@ -153,7 +111,6 @@ useEffect(() => {
               <th className="p-4">Name</th>
               <th className="p-4">Contact</th>
               <th className="p-4">Subjects/Classes</th>
-              <th className="p-4">Status</th>
               <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -167,16 +124,11 @@ useEffect(() => {
                     {t.subjects?.map(s => <span key={s} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{s}</span>)}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1 text-gray-400">
-                    {t.classes?.join(', ')}
+                    {Array.isArray(t.classes) ? t.classes.join(', ') : t.classes}
                   </div>
                 </td>
-                <td className="p-4">
-                  <span className={`flex items-center gap-1.5 text-xs font-bold ${isOnline(t.last_seen) ? 'text-green-500' : 'text-gray-400'}`}>
-                    <FaCircle size={8} /> {isOnline(t.last_seen) ? 'ONLINE' : 'OFFLINE'}
-                  </span>
-                </td>
                 <td className="p-4 text-right">
-                  <button onClick={() => handleDelete(t.id, t.name)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                  <button onClick={() => handleDelete(t.id, t.name)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                     <FaTrash />
                   </button>
                 </td>
@@ -188,21 +140,21 @@ useEffect(() => {
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-4xl p-8 w-full max-w-lg">
+          <div className="bg-white rounded-4xl p-8 w-full max-w-lg shadow-xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Register Teacher</h2>
-              <button onClick={() => setShowAddModal(false)}><FaTimes /></button>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-black"><FaTimes /></button>
             </div>
             <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="text-xs font-bold text-gray-400 uppercase">Full Name</label>
                 <input required className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
                 <input required type="email" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
                 <input className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
               </div>
@@ -214,7 +166,7 @@ useEffect(() => {
                 <label className="text-xs font-bold text-gray-400 uppercase">Classes</label>
                 <input placeholder="JS1, SS2" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.classes} onChange={e => setFormData({...formData, classes: e.target.value})} />
               </div>
-              <button disabled={loading} className="col-span-2 bg-primary text-white py-4 rounded-2xl font-bold mt-4">
+              <button disabled={loading} className="col-span-2 bg-primary text-white py-4 rounded-2xl font-bold mt-4 hover:opacity-90 transition-opacity">
                 {loading ? <FaSpinner className="animate-spin mx-auto" /> : 'Create Teacher Account'}
               </button>
             </form>

@@ -13,33 +13,6 @@ const TeacherDashboard = () => {
   const [teacher, setTeacher] = useState(null);
 
   useEffect(() => {
-    let interval;
-
-    const startHeartbeat = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const ping = async () => {
-          await supabase
-            .from('teachers')
-            .update({ last_seen: new Date().toISOString() })
-            .eq('id', user.id);
-        };
-
-        await ping(); // First ping immediately
-        interval = setInterval(ping, 60000); // Ping every 60 seconds
-      }
-    };
-
-    startHeartbeat();
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, []);
-  
-
-  useEffect(() => {
     const teacherData = JSON.parse(localStorage.getItem('teacher'));
     setTeacher(teacherData);
   }, []);
@@ -66,39 +39,12 @@ const handleLogout = () => {
     icon: 'question',
     showCancelButton: true,
     confirmButtonColor: '#3B82F6',
-    cancelButtonColor: '#ef4444',
     confirmButtonText: 'Yes, logout'
-  }).then(async (result) => { // Added 'async' here
+  }).then(async (result) => {
     if (result.isConfirmed) {
-      try {
-        // 1. Get the current logged-in teacher's ID
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-          // 2. "Kill" the online status in the database immediately
-          // We set it to a date in the past (1970) so the Admin sees them as OFFLINE
-          await supabase
-            .from('teachers')
-            .update({ last_seen: new Date(0).toISOString() })
-            .eq('id', user.id);
-        }
-
-        // 3. Official Supabase sign out
-        await supabase.auth.signOut();
-
-        // 4. Clear your local storage items
-        localStorage.removeItem('teacher');
-        localStorage.removeItem('teacherToken');
-        localStorage.removeItem('userType');
-
-        // 5. Go back to sign in
-        navigate('/teacher/signin');
-        
-      } catch (error) {
-        console.error("Logout Error:", error.message);
-        // Even if the DB update fails, we should still clear local storage and redirect
-        navigate('/teacher/signin');
-      }
+      await supabase.auth.signOut();
+      localStorage.clear();
+      navigate('/teacher/signin');
     }
   });
 };
