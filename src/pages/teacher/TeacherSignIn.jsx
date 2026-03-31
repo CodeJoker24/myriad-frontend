@@ -24,7 +24,7 @@ const TeacherSignIn = () => {
 
       if (authError) throw authError;
 
-      // 2. Get full teacher profile from teachers table
+    
       const { data: teacherProfile, error: dbError } = await supabase
         .from('teachers')
         .select('*')
@@ -36,7 +36,7 @@ const TeacherSignIn = () => {
         throw new Error('This account is not registered as a teacher.');
       }
 
-      // 3. Save teacher data to localStorage
+     
       const teacherData = {
         id: teacherProfile.id,
         name: teacherProfile.name,

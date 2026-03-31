@@ -14,7 +14,7 @@ export const TeacherResetPassword = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
 
-    // Validation
+    
     if (newp !== confirm) {
       return Swal.fire({ icon: "error", title: "Oops", text: "Passwords do not match!" });
     }
@@ -30,7 +30,7 @@ export const TeacherResetPassword = () => {
       });
       if (authError) throw authError;
 
-
+   
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { error: dbError } = await supabase
