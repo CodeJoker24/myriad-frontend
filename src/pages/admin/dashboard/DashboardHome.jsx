@@ -1,6 +1,48 @@
 import { FaUsers, FaChalkboardTeacher, FaBook, FaClipboardList } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../../db';
 
 export const DashboardHome = () => {
+  const [counts, setCounts] = useState({
+    teachers: 0,
+    students: 0,
+    courses: 0,
+    pendingResults: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      
+      
+      const { count: teacherCount, error: tError } = await supabase
+        .from('teachers')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: studentCount } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+
+      if (tError) console.error("Error fetching stats:", tError);
+
+      setCounts({
+        teachers: teacherCount || 0,
+        students: studentCount || 0,
+        courses: 0, 
+        pendingResults: 0
+      });
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div>
       
@@ -16,7 +58,7 @@ export const DashboardHome = () => {
             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
               <FaUsers size={24} />
             </div>
-            <span className="text-2xl font-bold">0</span>
+            <span className="text-2xl font-bold">{counts.students}</span>
           </div>
           <h3 className="text-gray-600">Total Students</h3>
         </div>
@@ -26,7 +68,7 @@ export const DashboardHome = () => {
             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
               <FaChalkboardTeacher size={24} />
             </div>
-            <span className="text-2xl font-bold">0</span>
+            <span className="text-2xl font-bold">{counts.teachers}</span>
           </div>
           <h3 className="text-gray-600">Teachers</h3>
         </div>
@@ -36,7 +78,7 @@ export const DashboardHome = () => {
             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
               <FaBook size={24} />
             </div>
-            <span className="text-2xl font-bold">0</span>
+            <span className="text-2xl font-bold">{counts.courses}</span>
           </div>
           <h3 className="text-gray-600">Courses</h3>
         </div>
@@ -46,7 +88,7 @@ export const DashboardHome = () => {
             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
               <FaClipboardList size={24} />
             </div>
-            <span className="text-2xl font-bold">0</span>
+            <span className="text-2xl font-bold">{counts.pendingResults}</span>
           </div>
           <h3 className="text-gray-600">Pending Results</h3>
         </div>
