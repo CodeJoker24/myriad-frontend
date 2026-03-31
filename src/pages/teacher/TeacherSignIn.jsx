@@ -16,7 +16,7 @@ const TeacherSignIn = () => {
     setLoading(true);
 
     try {
-      // 1. Sign in with Supabase Auth
+     
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -24,36 +24,64 @@ const TeacherSignIn = () => {
 
       if (authError) throw authError;
 
-      // 2. Check the 'teachers' table for this user
+      // 2. Get full teacher profile from teachers table
       const { data: teacherProfile, error: dbError } = await supabase
         .from('teachers')
-        .select('is_first_login')
+        .select('*')
         .eq('id', authData.user.id)
         .single();
 
       if (dbError || !teacherProfile) {
-        // If they aren't in the teacher table, sign them out (they might be an admin/student)
         await supabase.auth.signOut();
         throw new Error('This account is not registered as a teacher.');
       }
 
-      // 3. Logic for Redirect
+      // 3. Save teacher data to localStorage
+      const teacherData = {
+        id: teacherProfile.id,
+        name: teacherProfile.name,
+        email: authData.user.email,
+        phone: teacherProfile.phone,
+        department: teacherProfile.department,
+        profile_image: teacherProfile.profile_image,
+        is_first_login: teacherProfile.is_first_login
+      };
+
+      localStorage.setItem('teacher', JSON.stringify(teacherData));
+      localStorage.setItem('teacherToken', authData.session.access_token);
+      localStorage.setItem('userType', 'teacher');
+
+      
       if (teacherProfile.is_first_login) {
-        // First time! Send to Change Password page
+    
         Swal.fire({
           title: 'Welcome!',
           text: 'Since this is your first login, please set a new password.',
           icon: 'info',
-          confirmButtonColor: '#3b82f6'
+          confirmButtonColor: '#3b82f6',
+          timer: 2000
         });
-        navigate('/teacher/dashboard'); 
+        
+        
+        navigate('/teacher/dashboard/change-password');
       } else {
-        // Not first time, go to dashboard
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Welcome Back!',
+          text: `Hello, ${teacherProfile.name}`,
+          timer: 1500,
+          showConfirmButton: false
+        });
         navigate('/teacher/dashboard');
       }
 
     } catch (error) {
-      Swal.fire('Login Failed', error.message, 'error');
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: error.message
+      });
     } finally {
       setLoading(false);
     }
