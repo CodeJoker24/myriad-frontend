@@ -14,15 +14,15 @@ export const Teachers = () => {
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
-  // Fetch teachers on load and every 60 seconds
+
   useEffect(() => {
     fetchTeachers();
-    const interval = setInterval(fetchTeachers, 60000);
+    const interval = setInterval(fetchTeachers, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchTeachers = async () => {
-    // FIX: Added 'error' to the destructuring here
+   
     const { data, error } = await supabase
       .from('teachers')
       .select('*')
