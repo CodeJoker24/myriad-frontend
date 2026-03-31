@@ -14,6 +14,23 @@ export const Teachers = () => {
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
+  useEffect(() => {
+    const sendPing = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        await supabase
+          .from('teachers')
+          .update({ last_seen: new Date().toISOString() })
+          .eq('id', user.id);
+      }
+    };
+
+    sendPing();
+    const interval = setInterval(sendPing, 60000); 
+    return () => clearInterval(interval);
+  }, []);
+
 
   useEffect(() => {
     fetchTeachers();
