@@ -10,48 +10,50 @@ export const Teachers = () => {
   const [loading, setLoading] = useState(false);
   const [teachers, setTeachers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // New Teacher Form State
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', subjects: '', classes: ''
   });
 
+  // Fetch teachers on load and every 60 seconds
   useEffect(() => {
     fetchTeachers();
-    // Refresh list every 60 seconds to update Online/Offline status
     const interval = setInterval(fetchTeachers, 60000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchTeachers = async () => {
-    const { data } = await supabase.from('teachers').select('*').order('name');
+    // FIX: Added 'error' to the destructuring here
+    const { data, error } = await supabase
+      .from('teachers')
+      .select('*')
+      .order('last_seen', { ascending: false });
+
     if (data) setTeachers(data);
+    if (error) console.error("Error loading teachers:", error.message);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      // 1. Create Auth User
       const { data: auth, error: authErr } = await supabase.auth.signUp({
         email: formData.email,
         password: '123456',
       });
       if (authErr) throw authErr;
 
-      // 2. Insert Teacher Profile
       const { error: dbErr } = await supabase.from('teachers').insert([{
         id: auth.user.id,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        subjects: formData.subjects.split(',').map(s => s.trim()), // Convert string to array
+        subjects: formData.subjects.split(',').map(s => s.trim()),
         classes: formData.classes.split(',').map(c => c.trim()),
         is_first_login: true
       }]);
       if (dbErr) throw dbErr;
 
-      Swal.fire('Created!', 'Teacher added with default password 1234', 'success');
+      Swal.fire('Created!', 'Teacher added with default password 123456', 'success');
       setShowAddModal(false);
       setFormData({ name: '', email: '', phone: '', subjects: '', classes: '' });
       fetchTeachers();
@@ -73,8 +75,6 @@ export const Teachers = () => {
     });
 
     if (result.isConfirmed) {
-      // Note: Deleting from the 'teachers' table. 
-      // To delete from Auth, you'd usually use an Edge Function.
       const { error } = await supabase.from('teachers').delete().eq('id', id);
       if (!error) {
         setTeachers(teachers.filter(t => t.id !== id));
@@ -83,14 +83,12 @@ export const Teachers = () => {
     }
   };
 
-  // Helper to determine online status (Last seen within 5 minutes)
   const isOnline = (lastSeen) => {
     if (!lastSeen) return false;
     const lastActive = new Date(lastSeen).getTime();
     const now = new Date().getTime();
     return (now - lastActive) < 300000; // 5 minutes
   };
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -140,7 +138,7 @@ export const Teachers = () => {
         </table>
       </div>
 
-      {/* Add Teacher Modal */}
+      
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-4xl p-8 w-full max-w-lg">
