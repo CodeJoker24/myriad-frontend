@@ -1,20 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { 
-  FaUserGraduate, 
-  FaChalkboardTeacher, 
-  FaCalendarCheck,
-  FaArrowLeft,
-  FaBars,
-  FaTimes
-} from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaCalendarCheck,FaArrowLeft, FaBars, FaTimes } from 'react-icons/fa';
 
 export const SchoolManagementLayout = () => {
   const [nestedSidebarOpen, setNestedSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
-  // Close mobile menu when route changes
+ 
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
@@ -31,7 +24,7 @@ export const SchoolManagementLayout = () => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-      {/* Mobile Menu Button - Visible only on mobile */}
+      
       <div className="lg:hidden mb-4">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -42,7 +35,7 @@ export const SchoolManagementLayout = () => {
         </button>
       </div>
 
-      {/* Nested Sidebar - Desktop: always visible, Mobile: slides in overlay */}
+      
       <div className={`
         lg:relative lg:block
         ${isMobileMenuOpen ? 'fixed inset-0 z-50 bg-white' : 'hidden'}
@@ -65,7 +58,7 @@ export const SchoolManagementLayout = () => {
           ${isMobileMenuOpen ? 'h-full overflow-y-auto' : 'sticky top-24'}
           lg:sticky lg:top-24
         `}>
-          {/* Sidebar Header */}
+        
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className={`font-semibold text-gray-800 ${!nestedSidebarOpen && 'lg:hidden'}`}>
               School Management
@@ -81,7 +74,7 @@ export const SchoolManagementLayout = () => {
             </button>
           </div>
           
-          {/* Navigation Links */}
+         
           <nav className="p-3">
             {nestedLinks.map((link) => (
               <Link
@@ -104,7 +97,7 @@ export const SchoolManagementLayout = () => {
         </div>
       </div>
 
-      {/* Mobile Overlay */}
+     
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -112,7 +105,7 @@ export const SchoolManagementLayout = () => {
         />
       )}
 
-      {/* Main Content */}
+      
       <div className="flex-1">
         <Outlet />
       </div>
