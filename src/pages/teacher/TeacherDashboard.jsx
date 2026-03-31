@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, FaUsers, FaBook, FaClipboardList, FaSignOutAlt, FaChevronDown, FaChalkboardTeacher, FaCalendarCheck, FaChartBar, FaLock } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import { supabase } from '../../db';
 
 const TeacherDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -10,6 +11,33 @@ const TeacherDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [teacher, setTeacher] = useState(null);
+
+  useEffect(() => {
+    let interval;
+
+    const startHeartbeat = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const ping = async () => {
+          await supabase
+            .from('teachers')
+            .update({ last_seen: new Date().toISOString() })
+            .eq('id', user.id);
+        };
+
+        await ping(); // First ping immediately
+        interval = setInterval(ping, 60000); // Ping every 60 seconds
+      }
+    };
+
+    startHeartbeat();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+  
 
   useEffect(() => {
     const teacherData = JSON.parse(localStorage.getItem('teacher'));
