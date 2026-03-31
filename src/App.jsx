@@ -1,8 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import AdminSignIn from './pages/admin/SignIn';
 import AdminSignUp from './pages/admin/SignUp';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import TeacherSignIn from './pages/teacher/TeacherSignIn';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import { TeacherHome } from './pages/teacher/dashboard/TeacherHome';
+import { TeacherProfile } from './pages/teacher/dashboard/TeacherProfile';
 import { DashboardHome } from './pages/admin/dashboard/DashboardHome';
 import { SchoolManagementLayout } from './pages/admin/dashboard/school-management/SchoolManagementLayout';
 import { Students } from './pages/admin/dashboard/school-management/students/Students';
@@ -16,12 +20,15 @@ import { ResultManagement } from './pages/admin/dashboard/ResultManagement';
 import { ChangePassword } from './pages/admin/dashboard/ChangePassword';
 import { ResetPassword } from './pages/admin/dashboard/ResetPassword';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import TeacherProtectedRoute from './components/TeacherProtectedRoute';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+        
+        {/* Admin Routes */}
         <Route path="/admin/signin" element={<AdminSignIn />} />
         <Route path="/admin/signup" element={<AdminSignUp />} />
         <Route path="/admin/dashboard/reset-password" element={<ResetPassword />} />
@@ -44,6 +51,18 @@ function App() {
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="classroom" element={<ClassroomManagement />} />
           <Route path="results" element={<ResultManagement />} />
+        </Route>
+
+        {/* Teacher Routes */}
+        <Route path="/teacher/signin" element={<TeacherSignIn />} />
+        
+        <Route path="/teacher/dashboard" element={
+          <TeacherProtectedRoute>
+            <TeacherDashboard />
+          </TeacherProtectedRoute>
+        }>
+          <Route index element={<TeacherHome />} />
+          <Route path="profile" element={<TeacherProfile />} />
         </Route>
       </Routes>
     </Router>

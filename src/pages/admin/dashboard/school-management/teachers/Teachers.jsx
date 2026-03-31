@@ -1,121 +1,181 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../../../../db';
+import Swal from 'sweetalert2';
 import { 
-  FaPlus, 
-  FaEdit, 
-  FaTrash, 
-  FaBook,
-  FaUsers,
-  FaUserCheck,
-  FaUserTimes,
-  FaSearch,
-  FaDownload,
-  FaChalkboardTeacher
+  FaPlus, FaTrash, FaSearch, FaTimes, FaSpinner, FaCircle 
 } from 'react-icons/fa';
 
 export const Teachers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [teachers, setTeachers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // New Teacher Form State
+  const [formData, setFormData] = useState({
+    name: '', email: '', phone: '', subjects: '', classes: ''
+  });
 
-  const teachers = [];
+  useEffect(() => {
+    fetchTeachers();
+    // Refresh list every 60 seconds to update Online/Offline status
+    const interval = setInterval(fetchTeachers, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleAddTeacher = () => setShowAddModal(true);
-  const handleEditTeacher = (teacher) => console.log('Edit teacher:', teacher);
-  const handleDeleteTeacher = (teacher) => console.log('Delete teacher:', teacher);
-  const handleAssignSubjects = (teacher) => console.log('Assign subjects:', teacher);
-  const handleAssignClasses = (teacher) => console.log('Assign classes:', teacher);
-  const handleToggleStatus = (teacher) => console.log('Toggle status:', teacher);
-  const handleViewReport = () => console.log('Export teachers');
+  const fetchTeachers = async () => {
+    const { data } = await supabase.from('teachers').select('*').order('name');
+    if (data) setTeachers(data);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      // 1. Create Auth User
+      const { data: auth, error: authErr } = await supabase.auth.signUp({
+        email: formData.email,
+        password: '123456',
+      });
+      if (authErr) throw authErr;
+
+      // 2. Insert Teacher Profile
+      const { error: dbErr } = await supabase.from('teachers').insert([{
+        id: auth.user.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subjects: formData.subjects.split(',').map(s => s.trim()), // Convert string to array
+        classes: formData.classes.split(',').map(c => c.trim()),
+        is_first_login: true
+      }]);
+      if (dbErr) throw dbErr;
+
+      Swal.fire('Created!', 'Teacher added with default password 1234', 'success');
+      setShowAddModal(false);
+      setFormData({ name: '', email: '', phone: '', subjects: '', classes: '' });
+      fetchTeachers();
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    const result = await Swal.fire({
+      title: `Delete ${name}?`,
+      text: "This will remove their account and access.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      confirmButtonText: 'Yes, delete'
+    });
+
+    if (result.isConfirmed) {
+      // Note: Deleting from the 'teachers' table. 
+      // To delete from Auth, you'd usually use an Edge Function.
+      const { error } = await supabase.from('teachers').delete().eq('id', id);
+      if (!error) {
+        setTeachers(teachers.filter(t => t.id !== id));
+        Swal.fire('Deleted', 'Teacher removed.', 'success');
+      }
+    }
+  };
+
+  // Helper to determine online status (Last seen within 5 minutes)
+  const isOnline = (lastSeen) => {
+    if (!lastSeen) return false;
+    const lastActive = new Date(lastSeen).getTime();
+    const now = new Date().getTime();
+    return (now - lastActive) < 300000; // 5 minutes
+  };
 
   return (
-    <div>
-      <div className="mb-6">
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Teacher Management</h1>
-        <p className="text-gray-500 mt-1">Manage teachers, assign subjects and classes</p>
-      </div>
-
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div className="flex gap-3">
-          <button
-            onClick={handleAddTeacher}
-            className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all"
-          >
-            <FaPlus size={16} />
-            Add Teacher
-          </button>
-          <button
-            onClick={handleViewReport}
-            className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-medium flex items-center gap-2"
-          >
-            <FaDownload size={16} />
-            Export
-          </button>
-        </div>
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search teachers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition w-64"
-          />
-        </div>
+        <button onClick={() => setShowAddModal(true)} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2">
+          <FaPlus /> Add Teacher
+        </button>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">S/N</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Teacher Name</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Email</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Phone</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Subjects</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Classes</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Status</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Actions</th>
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr className="text-left text-xs font-bold text-gray-500 uppercase">
+              <th className="p-4">Name</th>
+              <th className="p-4">Contact</th>
+              <th className="p-4">Subjects/Classes</th>
+              <th className="p-4">Status</th>
+              <th className="p-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {teachers.map((t) => (
+              <tr key={t.id} className="hover:bg-gray-50">
+                <td className="p-4 font-bold text-gray-800">{t.name}</td>
+                <td className="p-4 text-sm text-gray-500">{t.email}<br/>{t.phone}</td>
+                <td className="p-4 text-xs">
+                  <div className="flex flex-wrap gap-1">
+                    {t.subjects?.map(s => <span key={s} className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{s}</span>)}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1 text-gray-400">
+                    {t.classes?.join(', ')}
+                  </div>
+                </td>
+                <td className="p-4">
+                  <span className={`flex items-center gap-1.5 text-xs font-bold ${isOnline(t.last_seen) ? 'text-green-500' : 'text-gray-400'}`}>
+                    <FaCircle size={8} /> {isOnline(t.last_seen) ? 'ONLINE' : 'OFFLINE'}
+                  </span>
+                </td>
+                <td className="p-4 text-right">
+                  <button onClick={() => handleDelete(t.id, t.name)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <FaTrash />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {teachers.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-12 text-gray-500">
-                    <FaChalkboardTeacher className="text-4xl mx-auto mb-3 text-gray-300" />
-                    <p>No teachers found</p>
-                    <button onClick={handleAddTeacher} className="mt-3 text-primary hover:text-primary-dark font-medium">
-                      + Add your first teacher
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                teachers.map((teacher, index) => (
-                  <tr key={teacher.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-6 text-sm text-gray-600">{index + 1}</td>
-                    <td className="py-3 px-6 text-sm font-medium text-gray-800">{teacher.name}</td>
-                    <td className="py-3 px-6 text-sm text-gray-600">{teacher.email}</td>
-                    <td className="py-3 px-6 text-sm text-gray-600">{teacher.phone}</td>
-                    <td className="py-3 px-6 text-sm text-gray-600">-</td>
-                    <td className="py-3 px-6 text-sm text-gray-600">-</td>
-                    <td className="py-3 px-6">
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">active</span>
-                    </td>
-                    <td className="py-3 px-6">
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><FaEdit size={16} /></button>
-                        <button className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"><FaBook size={16} /></button>
-                        <button className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><FaUsers size={16} /></button>
-                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><FaTrash size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      {/* Add Teacher Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Register Teacher</h2>
+              <button onClick={() => setShowAddModal(false)}><FaTimes /></button>
+            </div>
+            <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="text-xs font-bold text-gray-400 uppercase">Full Name</label>
+                <input required className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase">Email</label>
+                <input required type="email" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
+                <input className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase">Subjects (Comma separated)</label>
+                <input placeholder="Math, Physics" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.subjects} onChange={e => setFormData({...formData, subjects: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase">Classes (Comma separated)</label>
+                <input placeholder="JS1, SS2" className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100" value={formData.classes} onChange={e => setFormData({...formData, classes: e.target.value})} />
+              </div>
+              <button disabled={loading} className="col-span-2 bg-primary text-white py-4 rounded-2xl font-bold mt-4">
+                {loading ? <FaSpinner className="animate-spin mx-auto" /> : 'Create Teacher Account'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

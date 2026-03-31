@@ -1,15 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  FaGraduationCap,
-  FaUserShield, 
-  FaUserGraduate, 
-  FaChalkboardTeacher,
-  FaChevronDown,
-  FaBars,
-  FaTimes
-} from 'react-icons/fa';
+import { FaGraduationCap, FaUserShield,  FaUserGraduate, FaChalkboardTeacher, FaChevronDown, FaBars, FaTimes } from 'react-icons/fa';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -82,12 +73,12 @@ const Header = () => {
                     </Link>
                   </li>
                   <li>
-                    <Link to="/student/login" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                    <Link to="/student/signin" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
                       <FaUserGraduate className="text-primary" size={14} /> Student
                     </Link>
                   </li>
                   <li>
-                    <Link to="/teacher/login" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
+                    <Link to="/teacher/signin" className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors">
                       <FaChalkboardTeacher className="text-primary" size={14} /> Teacher
                     </Link>
                   </li>
@@ -150,10 +141,10 @@ const Header = () => {
                   <Link to="/admin/signin" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
                     <FaUserShield className="text-primary" size={14} /> Admin
                   </Link>
-                  <Link to="/student/login" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
+                  <Link to="/student/signin" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
                     <FaUserGraduate className="text-primary" size={14} /> Student
                   </Link>
-                  <Link to="/teacher/login" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
+                  <Link to="/teacher/signin" className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors">
                     <FaChalkboardTeacher className="text-primary" size={14} /> Teacher
                   </Link>
                 </div>
