@@ -9,6 +9,14 @@ import { TeacherHome } from './pages/teacher/dashboard/TeacherHome';
 import { TeacherProfile } from './pages/teacher/dashboard/TeacherProfile';
 import { TeacherChangePassword } from './pages/teacher/dashboard/TeacherChangePassword';
 import { TeacherResetPassword } from './pages/teacher/dashboard/TeacherResetPassword';
+import StudentSignIn from './pages/student/StudentSignIn';
+import StudentDashboard from './pages/student/StudentDashboard';
+import { StudentHome } from './pages/student/dashboard/StudentHome';
+import { StudentProfile } from './pages/student/dashboard/StudentProfile';
+import { StudentResults } from './pages/student/dashboard/StudentResults';
+import { StudentAttendance } from './pages/student/dashboard/StudentAttendance';
+import { StudentCourses } from './pages/student/dashboard/StudentCourses';
+import { StudentChangePassword } from './pages/student/dashboard/StudentChangePassword';
 import { DashboardHome } from './pages/admin/dashboard/DashboardHome';
 import { SchoolManagementLayout } from './pages/admin/dashboard/school-management/SchoolManagementLayout';
 import { Students } from './pages/admin/dashboard/school-management/students/Students';
@@ -23,6 +31,7 @@ import { ChangePassword } from './pages/admin/dashboard/ChangePassword';
 import { ResetPassword } from './pages/admin/dashboard/ResetPassword';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import TeacherProtectedRoute from './components/TeacherProtectedRoute';
+import StudentProtectedRoute from './components/StudentProtectedRoute';
 
 function App() {
   return (
@@ -67,6 +76,22 @@ function App() {
           <Route index element={<TeacherHome />} />
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="change-password" element={<TeacherChangePassword />} />
+        </Route>
+
+        {/* Student Routes */}
+        <Route path="/student/signin" element={<StudentSignIn />} />
+        
+        <Route path="/student/dashboard" element={
+          <StudentProtectedRoute>
+            <StudentDashboard />
+          </StudentProtectedRoute>
+        }>
+          <Route index element={<StudentHome />} />
+          <Route path="profile" element={<StudentProfile />} />
+          <Route path="results" element={<StudentResults />} />
+          <Route path="attendance" element={<StudentAttendance />} />
+          <Route path="courses" element={<StudentCourses />} />
+          <Route path="change-password" element={<StudentChangePassword />} />
         </Route>
       </Routes>
     </Router>
