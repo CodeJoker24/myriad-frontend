@@ -16,7 +16,7 @@ const TeacherSignIn = () => {
     setLoading(true);
 
     try {
-     
+      
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -24,7 +24,7 @@ const TeacherSignIn = () => {
 
       if (authError) throw authError;
 
-    
+     
       const { data: teacherProfile, error: dbError } = await supabase
         .from('teachers')
         .select('*')
@@ -36,13 +36,18 @@ const TeacherSignIn = () => {
         throw new Error('This account is not registered as a teacher.');
       }
 
-     
+ 
+      if (teacherProfile.is_active === false) {
+        await supabase.auth.signOut(); 
+        throw new Error('Your account has been deactivated/frozen. Please contact the Admin.');
+      }
+
+  
       const teacherData = {
         id: teacherProfile.id,
         name: teacherProfile.name,
         email: authData.user.email,
         phone: teacherProfile.phone,
-        department: teacherProfile.department,
         profile_image: teacherProfile.profile_image,
         is_first_login: teacherProfile.is_first_login
       };
@@ -51,21 +56,16 @@ const TeacherSignIn = () => {
       localStorage.setItem('teacherToken', authData.session.access_token);
       localStorage.setItem('userType', 'teacher');
 
-      
       if (teacherProfile.is_first_login) {
-    
         Swal.fire({
           title: 'Welcome!',
           text: 'Since this is your first login, please set a new password.',
           icon: 'info',
           confirmButtonColor: '#3b82f6',
-          timer: 2000
+          timer: 3000
         });
-        
-        
         navigate('/teacher/dashboard/change-password');
       } else {
-        
         Swal.fire({
           icon: 'success',
           title: 'Welcome Back!',
