@@ -53,7 +53,8 @@ const StudentDashboard = () => {
   const isActive = (path) => location.pathname === path;
 
   const handleLinkClick = () => {
-    if (window.innerWidth < 1024) setSidebarOpen(false);
+    // Close sidebar on ALL devices when a link is clicked
+    setSidebarOpen(false);
   };
 
   return (
@@ -102,20 +103,35 @@ const StudentDashboard = () => {
 
       {/* Main Content */}
       <div className="transition-all duration-300">
-        <header className="h-20 bg-white shadow-sm fixed right-0 top-0 z-10 left-0 lg:left-72">
+        {/* Topbar - Full width */}
+        <header className="h-20 bg-white shadow-sm fixed top-0 right-0 left-0 z-10">
           <div className="h-full px-6 flex items-center justify-between">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-xl text-gray-600">
-              <FaBars size={20} />
-            </button>
+            {/* Menu button - Shows when sidebar is closed */}
+            {!sidebarOpen && (
+              <button 
+                onClick={() => setSidebarOpen(true)} 
+                className="p-2 hover:bg-gray-100 rounded-xl text-gray-600"
+              >
+                <FaBars size={20} />
+              </button>
+            )}
 
-            <div className="flex-1 max-w-md ml-4">
+            {/* Spacer when sidebar is open to keep search centered */}
+            {sidebarOpen && <div className="w-10 lg:hidden"></div>}
+
+            <div className={`flex-1 max-w-md ${!sidebarOpen ? 'ml-4' : 'mx-4'}`}>
               <div className="relative">
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" placeholder="Search..." className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50 focus:bg-white" />
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50 focus:bg-white" 
+                />
               </div>
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Notifications */}
               <div className="relative">
                 <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 hover:bg-gray-100 rounded-xl">
                   <FaBell className="text-gray-600 text-xl" />
@@ -123,12 +139,19 @@ const StudentDashboard = () => {
                 </button>
                 {showNotifications && (
                   <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <div className="px-5 py-3 border-b border-gray-100"><h3 className="font-semibold text-gray-800">Notifications</h3></div>
-                    <div className="max-h-96 overflow-y-auto"><div className="px-5 py-4"><p className="text-sm text-gray-500">No new notifications</p></div></div>
+                    <div className="px-5 py-3 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-800">Notifications</h3>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      <div className="px-5 py-4">
+                        <p className="text-sm text-gray-500">No new notifications</p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
+              {/* User Menu */}
               <div className="relative">
                 <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 hover:bg-gray-100 rounded-xl p-2">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -142,9 +165,13 @@ const StudentDashboard = () => {
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <Link to="/student/dashboard/profile" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
+                    <Link to="/student/dashboard/profile" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                      Profile
+                    </Link>
                     <hr className="my-2 border-gray-100" />
-                    <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50">Logout</button>
+                    <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50">
+                      Logout
+                    </button>
                   </div>
                 )}
               </div>
@@ -152,6 +179,7 @@ const StudentDashboard = () => {
           </div>
         </header>
 
+        {/* Page Content */}
         <main className="pt-24 pb-8 px-6 min-h-screen">
           <Outlet />
         </main>

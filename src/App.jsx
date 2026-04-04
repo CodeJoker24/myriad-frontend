@@ -7,6 +7,7 @@ import TeacherSignIn from './pages/teacher/TeacherSignIn';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import { TeacherHome } from './pages/teacher/dashboard/TeacherHome';
 import { TeacherProfile } from './pages/teacher/dashboard/TeacherProfile';
+import MyClass from './pages/teacher/dashboard/MyClass';
 import { TeacherChangePassword } from './pages/teacher/dashboard/TeacherChangePassword';
 import { TeacherResetPassword } from './pages/teacher/dashboard/TeacherResetPassword';
 import StudentSignIn from './pages/student/StudentSignIn';
@@ -74,6 +75,7 @@ function App() {
           </TeacherProtectedRoute>
         }>
           <Route index element={<TeacherHome />} />
+          <Route path="my-class" element={<MyClass />} />
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="change-password" element={<TeacherChangePassword />} />
         </Route>
