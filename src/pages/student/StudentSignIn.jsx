@@ -12,56 +12,53 @@ const StudentSignIn = () => {
   const navigate = useNavigate();
 
   const handleSignIn = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const internalEmail = `${studentId.trim().toLowerCase()}@school.internal`;
+  try {
+   
+    const cleanId = studentId.trim().replace(/\//g, '').toLowerCase();
+    const internalEmail = `${cleanId}@school.internal`;
 
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: internalEmail,
-        password: password,
-      });
 
-      if (authError) throw authError;
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: internalEmail,
+      password: password, 
+    });
 
-      const { data: profile, error: profileError } = await supabase
-        .from('students')
-        .select('is_active, name, class_name')
-        .eq('id', authData.user.id)
-        .single();
+    if (authError) throw authError;
 
-      if (profileError) throw new Error("Could not verify account status.");
+    
+    const { data: profile, error: profileError } = await supabase
+      .from('students')
+      .select('is_active, name, class_name, student_id')
+      .eq('id', authData.user.id)
+      .single();
 
-      if (!profile.is_active) {
-        await supabase.auth.signOut();
-        throw new Error("Your account is suspended. Please contact the school admin.");
-      }
+    if (profileError) throw new Error("Could not verify account status.");
 
-      const studentData = {
-        id: authData.user.id,
-        studentId: studentId,
-        name: profile.name,
-        className: profile.class_name,
-        email: authData.user.email,
-      };
+    if (!profile.is_active) {
+      await supabase.auth.signOut();
+      throw new Error("Your account is suspended. Please contact the school admin.");
+    }
 
-      localStorage.setItem('student', JSON.stringify(studentData));
-      localStorage.setItem('studentToken', authData.session.access_token);
-      localStorage.setItem('userType', 'student');
+    
+    const studentData = {
+      id: authData.user.id,
+      studentId: profile.student_id, 
+      name: profile.name,
+      className: profile.class_name,
+      email: authData.user.email,
+    };
 
-      Swal.fire({
-        icon: 'success',
-        title: `Welcome, ${profile.name}!`,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000
-      });
+    localStorage.setItem('student', JSON.stringify(studentData));
+    localStorage.setItem('studentToken', authData.session.access_token);
+    localStorage.setItem('userType', 'student');
 
-      navigate('/student/dashboard');
+    
+    navigate('/student/dashboard');
 
-    } catch (err) {
+  } catch (err) {
       Swal.fire({
         icon: 'error',
         title: 'Access Denied',

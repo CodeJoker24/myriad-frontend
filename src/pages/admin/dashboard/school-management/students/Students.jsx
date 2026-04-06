@@ -69,45 +69,55 @@ export const Students = () => {
         if (error) throw error;
         Swal.fire('Updated!', 'Student record updated.', 'success');
       } else {
-        const { data: nextId, error: seqErr } = await supabase.rpc('generate_student_id');
-        if (seqErr) throw seqErr;
 
-        const internalEmail = `${nextId.toLowerCase()}@school.internal`;
-        const initialPassword = formData.name.split(' ')[0].toLowerCase();
+  const { data: nextId, error: seqErr } = await supabase.rpc('generate_student_id');
+  if (seqErr) throw seqErr;
 
-        const { data: auth, error: authErr } = await supabase.auth.signUp({
-          email: internalEmail,
-          password: initialPassword,
-        });
+ 
+  const cleanId = nextId.replace(/\//g, '').toLowerCase();
+  const internalEmail = `${cleanId}@school.internal`;
+  
 
-        if (authErr) throw authErr;
+  const firstName = formData.name.split(' ')[0].toLowerCase();
+  const initialPassword = `${firstName}123`;
 
-        const { error: dbErr } = await supabase.from('students').insert([{
-          id: auth.user.id,
-          student_id: nextId,
-          name: formData.name,
-          class_name: formData.class_name,
-          gender: formData.gender,
-          dob: formData.dob,
-          parent_name: formData.parent_name,
-          phone: formData.phone,
-          email: internalEmail,
-          is_active: true
-        }]);
 
-        if (dbErr) throw dbErr;
+  const { data: auth, error: authErr } = await supabase.auth.signUp({
+    email: internalEmail,
+    password: initialPassword,
+  });
 
-        Swal.fire({
-          title: 'Enrollment Successful!',
-          html: `
-            <div class="text-left bg-gray-50 p-4 rounded-xl border border-gray-200 mt-2">
-              <p class="text-sm"><strong>Student ID:</strong> <code class="text-primary font-bold">${nextId}</code></p>
-              <p class="text-sm"><strong>Initial Password:</strong> <code class="text-primary font-bold">${initialPassword}</code></p>
-            </div>
-          `,
-          icon: 'success'
-        });
-      }
+  if (authErr) throw authErr;
+
+  // 5. Insert the full record into your 'students' table
+  const { error: dbErr } = await supabase.from('students').insert([{
+    id: auth.user.id, 
+    student_id: nextId, 
+    name: formData.name,
+    class_name: formData.class_name,
+    gender: formData.gender,
+    dob: formData.dob,
+    parent_name: formData.parent_name,
+    phone: formData.phone,
+    email: internalEmail,
+    is_active: true
+  }]);
+
+  if (dbErr) throw dbErr;
+
+  
+  Swal.fire({
+    title: 'Enrollment Successful!',
+    html: `
+      <div class="text-left bg-gray-50 p-4 rounded-xl border border-gray-200 mt-2">
+        <p class="text-sm"><strong>Student ID:</strong> <code class="text-primary font-bold">${nextId}</code></p>
+        <p class="text-sm"><strong>Login Email:</strong> <code class="text-gray-600">${internalEmail}</code></p>
+        <p class="text-sm"><strong>Initial Password:</strong> <code class="text-primary font-bold">${initialPassword}</code></p>
+      </div>
+    `,
+    icon: 'success'
+  });
+}
 
       setShowAddModal(false);
       setFormData({ name: '', class_name: '', gender: '', dob: '', parent_name: '', phone: '' });

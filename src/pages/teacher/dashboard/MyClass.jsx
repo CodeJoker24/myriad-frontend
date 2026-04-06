@@ -54,7 +54,11 @@ const MyClass = () => {
 
   const handleUpdateStudent = async (e) => {
     e.preventDefault();
+    if (!selectedStudent.name.trim()) {
+    return Swal.fire('Error', 'Student name cannot be empty', 'warning');
+    }
     setUpdateLoading(true);
+    
     try {
       const { error } = await supabase
         .from('students')
