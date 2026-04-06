@@ -72,53 +72,93 @@ export const Teachers = () => {
     setShowAddModal(true);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const payload = {
-        name: formData.name,
-        phone: formData.phone,
-        subjects: formData.subjects,
-        classes: formData.classes,
-        is_class_teacher_of: formData.is_class_teacher_of || null,
-      };
+ const handleSave = async (e) => {
+  e.preventDefault();
 
-      if (editingId) {
-        const { error } = await supabase
-          .from('teachers')
-          .update(payload)
-          .eq('id', editingId);
-        if (error) throw error;
-        Swal.fire('Updated!', 'Teacher profile updated successfully.', 'success');
-      } else {
-        const { data: auth, error: authErr } = await supabase.auth.signUp({
-          email: formData.email,
-          password: '123456',
-        });
-        if (authErr) throw authErr;
+ 
+  if (!window.navigator.onLine) {
+    return Swal.fire({
+      title: 'No Connection',
+      text: 'Your internet appears to be offline. Please reconnect and try again.',
+      icon: 'warning'
+    });
+  }
 
-        const { error: dbErr } = await supabase.from('teachers').insert([{
-          ...payload,
-          id: auth.user.id,
-          email: formData.email,
-          is_first_login: true,
-          is_active: true
-        }]);
-        if (dbErr) throw dbErr;
-        Swal.fire('Created!', 'Teacher added with default password 123456', 'success');
+  setLoading(true);
+  try {
+    const payload = {
+      name: formData.name,
+      phone: formData.phone,
+      subjects: formData.subjects,
+      classes: formData.classes,
+      is_class_teacher_of: formData.is_class_teacher_of || null,
+    };
+
+    if (editingId) {
+      const { error } = await supabase
+        .from('teachers')
+        .update(payload)
+        .eq('id', editingId);
+      
+      if (error) throw error;
+      Swal.fire('Updated!', 'Teacher profile updated successfully.', 'success');
+    } else {
+      
+      const { data: auth, error: authErr } = await supabase.auth.signUp({
+        email: formData.email,
+        password: '123456',
+      });
+
+      if (authErr) {
+        throw authErr;
       }
 
-      setShowAddModal(false);
-      setEditingId(null);
-      setFormData({ name: '', email: '', phone: '', subjects: [], classes: [], is_class_teacher_of: '' });
-      fetchTeachers();
-    } catch (err) {
-      Swal.fire('Error', err.message, 'error');
-    } finally {
-      setLoading(false);
+      
+      const { error: dbErr } = await supabase.from('teachers').insert([{
+        ...payload,
+        id: auth.user.id,
+        email: formData.email,
+        is_first_login: true,
+        is_active: true
+      }]);
+
+      if (dbErr) {
+        
+        throw new Error(`Auth account created, but profile setup failed: ${dbErr.message}`);
+      }
+
+      Swal.fire('Created!', 'Teacher added with default password 123456', 'success');
     }
-  };
+
+    // Reset state on success
+    setShowAddModal(false);
+    setEditingId(null);
+    setFormData({ name: '', email: '', phone: '', subjects: [], classes: [], is_class_teacher_of: '' });
+    fetchTeachers();
+
+  } catch (err) {
+
+    let friendlyMessage = err.message;
+
+   
+    if (friendlyMessage.includes("Failed to fetch") || friendlyMessage.includes("network")) {
+      friendlyMessage = "Connection lost! Please check your internet and try again.";
+    } 
+    
+    else if (friendlyMessage.includes("already registered")) {
+      friendlyMessage = "This email is already registered. If the profile is missing, please contact the DB admin.";
+    }
+
+    Swal.fire({
+      title: 'Error',
+      text: friendlyMessage,
+      icon: 'error',
+      confirmButtonColor: '#3b82f6'
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const toggleStatus = async (id, currentStatus, name) => {
     const { error } = await supabase
