@@ -205,11 +205,11 @@ export const Students = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center">
+        <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-primary">{students.length}</p>
           <p className="text-xs text-gray-600 font-medium">Total Students</p>
         </div>
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center">
+        <div className="bg-linear-to-br from-green-50 to-green-100 rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-green-600">{students.filter(s => s.is_active).length}</p>
           <p className="text-xs text-gray-600 font-medium">Active</p>
         </div>
