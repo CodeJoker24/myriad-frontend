@@ -196,15 +196,31 @@ export const Students = () => {
   };
 
   return (
-    <div className="p-4 pb-24 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Students</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage enrollment and student profiles</p>
+    <div className="p-4 md:p-6 max-w-7xl mx-auto pb-24 md:pb-6">
+      {/* Header with Add Button - Visible on all devices */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Student Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage enrollment and student profiles</p>
+        </div>
+        <button
+          onClick={() => { 
+            setEditingId(null); 
+            setFormData({
+              name:'', class_name:'', gender:'', dob:'', parent_name:'', phone:'',
+              enrollment_date: new Date().toISOString().split('T')[0],
+              address: '', state_of_origin: '', lga: ''
+            }); 
+            setShowAddModal(true); 
+          }}
+          className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md transition-all w-full sm:w-auto"
+        >
+          <FaPlus size={14} /> Add Student
+        </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      {/* Stats Cards - Mobile Only */}
+      <div className="grid grid-cols-2 gap-3 mb-5 md:hidden">
         <div className="bg-linear-to-br from-blue-50 to-blue-100 rounded-2xl p-4 text-center">
           <p className="text-2xl font-bold text-primary">{students.length}</p>
           <p className="text-xs text-gray-600 font-medium">Total Students</p>
@@ -216,7 +232,7 @@ export const Students = () => {
       </div>
 
       {/* Search & Filter */}
-      <div className="flex gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -227,29 +243,44 @@ export const Students = () => {
             className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
           />
         </div>
-        <div className="relative">
+        
+        {/* Mobile Filter Dropdown */}
+        <div className="relative md:hidden">
           <button
             onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            className="px-4 py-3 bg-white rounded-xl border border-gray-200 flex items-center gap-2 text-sm"
+            className="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between text-sm"
           >
-            <FaFilter size={12} />
-            <span>{filterStatus === 'all' ? 'All' : filterStatus === 'active' ? 'Active' : 'Inactive'}</span>
+            <span className="flex items-center gap-2">
+              <FaFilter size={12} />
+              {filterStatus === 'all' ? 'All Status' : filterStatus === 'active' ? 'Active' : 'Inactive'}
+            </span>
             <FaChevronDown size={10} className={`transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} />
           </button>
           {showFilterDropdown && (
-            <div className="absolute top-full right-0 mt-1 w-36 bg-white rounded-xl border border-gray-200 shadow-lg z-10">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg z-10">
               {['all', 'active', 'inactive'].map(opt => (
                 <button
                   key={opt}
                   onClick={() => { setFilterStatus(opt); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl ${filterStatus === opt ? 'text-primary font-semibold' : 'text-gray-600'}`}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl ${filterStatus === opt ? 'text-primary font-semibold bg-blue-50' : 'text-gray-600'}`}
                 >
-                  {opt === 'all' ? 'All Status' : opt === 'active' ? 'Active' : 'Inactive'}
+                  {opt === 'all' ? 'All Status' : opt === 'active' ? 'Active Only' : 'Inactive Only'}
                 </button>
               ))}
             </div>
           )}
         </div>
+
+        {/* Desktop Filter Select */}
+        <select 
+          className="hidden md:block px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active Only</option>
+          <option value="inactive">Inactive Only</option>
+        </select>
       </div>
 
       {/* Loading State */}
@@ -265,88 +296,132 @@ export const Students = () => {
           <button onClick={() => setShowAddModal(true)} className="mt-3 text-primary font-medium">+ Add your first student</button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredStudents.map((student) => (
-            <div key={student.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              {/* Card Header */}
-              <div 
-                className="p-4 flex justify-between items-center cursor-pointer active:bg-gray-50"
-                onClick={() => toggleExpand(student.id)}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-gray-800">{student.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${student.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {student.is_active ? 'Active' : 'Suspended'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <FaIdCard size={10} />
-                    <span className="font-mono">{student.student_id}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                    <FaGraduationCap size={10} />
-                    <span>{student.class_name}</span>
-                  </div>
-                </div>
-                <FaChevronRight className={`text-gray-400 transition-transform ${expandedCard === student.id ? 'rotate-90' : ''}`} />
-              </div>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr className="text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="py-4 px-6">ID</th>
+                    <th className="py-4 px-6">Name</th>
+                    <th className="py-4 px-6">Class</th>
+                    <th className="py-4 px-6">Status</th>
+                    <th className="py-4 px-6 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredStudents.map((s) => (
+                    <tr key={s.id} className="hover:bg-gray-50">
+                      <td className="py-3 px-6 text-xs font-mono font-bold text-primary">{s.student_id}</td>
+                      <td className="py-3 px-6 font-medium text-gray-800">{s.name}</td>
+                      <td className="py-3 px-6 text-sm text-gray-600">{s.class_name}</td>
+                      <td className="py-3 px-6">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {s.is_active ? 'Active' : 'Suspended'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => handleQuickView(s)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg" title="Quick View">
+                            <FaEye size={14} />
+                          </button>
+                          <button onClick={() => toggleStatus(s.id, s.is_active, s.name)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg" title="Suspend/Activate">
+                            <FaBan size={14} />
+                          </button>
+                          <button onClick={() => { setEditingId(s.id); setFormData(s); setShowAddModal(true); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg" title="Edit">
+                            <FaEdit size={14} />
+                          </button>
+                          <button onClick={() => handleDelete(s.id, s.name)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="Delete">
+                            <FaTrash size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-              {/* Expanded Content */}
-              {expandedCard === student.id && (
-                <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-3">
-                  {/* Parent Info */}
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Parent/Guardian</p>
-                    <p className="font-medium text-gray-800">{student.parent_name || 'N/A'}</p>
-                    {student.phone && (
-                      <div className="flex items-center gap-2 mt-2 text-sm">
-                        <FaPhone size={12} className="text-gray-400" />
-                        <span className="text-gray-600">{student.phone}</span>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredStudents.map((student) => (
+              <div key={student.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div 
+                  className="p-4 flex justify-between items-center cursor-pointer active:bg-gray-50"
+                  onClick={() => toggleExpand(student.id)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-semibold text-gray-800">{student.name}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${student.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {student.is_active ? 'Active' : 'Suspended'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <FaIdCard size={10} />
+                      <span className="font-mono">{student.student_id}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                      <FaGraduationCap size={10} />
+                      <span>{student.class_name}</span>
+                    </div>
+                  </div>
+                  <FaChevronRight className={`text-gray-400 transition-transform ${expandedCard === student.id ? 'rotate-90' : ''}`} />
+                </div>
+
+                {expandedCard === student.id && (
+                  <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-3">
+                    <div className="bg-gray-50 rounded-xl p-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Parent/Guardian</p>
+                      <p className="font-medium text-gray-800">{student.parent_name || 'N/A'}</p>
+                      {student.phone && (
+                        <div className="flex items-center gap-2 mt-2 text-sm">
+                          <FaPhone size={12} className="text-gray-400" />
+                          <span className="text-gray-600">{student.phone}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <FaCalendarAlt size={12} className="text-gray-400" />
+                        <span className="text-gray-600">DOB: {student.dob || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FaVenusMars size={12} className="text-gray-400" />
+                        <span className="text-gray-600">{student.gender || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {student.address && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <FaMapMarkerAlt size={12} className="text-gray-400 mt-0.5" />
+                        <span className="text-gray-600">{student.address}</span>
                       </div>
                     )}
-                  </div>
 
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <FaCalendarAlt size={12} className="text-gray-400" />
-                      <span className="text-gray-600">DOB: {student.dob || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FaVenusMars size={12} className="text-gray-400" />
-                      <span className="text-gray-600">{student.gender || 'N/A'}</span>
+                    <div className="flex gap-2 pt-2">
+                      <button onClick={() => handleQuickView(student)} className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-medium flex items-center justify-center gap-1">
+                        <FaEye size={12} /> View
+                      </button>
+                      <button onClick={() => toggleStatus(student.id, student.is_active, student.name)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-1 ${student.is_active ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
+                        <FaBan size={12} /> {student.is_active ? 'Suspend' : 'Activate'}
+                      </button>
+                      <button onClick={() => { setEditingId(student.id); setFormData(student); setShowAddModal(true); }} className="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-1">
+                        <FaEdit size={12} /> Edit
+                      </button>
+                      <button onClick={() => handleDelete(student.id, student.name)} className="py-2.5 px-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
+                        <FaTrash size={12} />
+                      </button>
                     </div>
                   </div>
-
-                  {/* Address */}
-                  {student.address && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <FaMapMarkerAlt size={12} className="text-gray-400 mt-0.5" />
-                      <span className="text-gray-600">{student.address}</span>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <button onClick={() => handleQuickView(student)} className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-medium flex items-center justify-center gap-1 active:bg-indigo-100">
-                      <FaEye size={12} /> View
-                    </button>
-                    <button onClick={() => toggleStatus(student.id, student.is_active, student.name)} className={`flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-1 ${student.is_active ? 'bg-orange-50 text-orange-600 active:bg-orange-100' : 'bg-green-50 text-green-600 active:bg-green-100'}`}>
-                      <FaBan size={12} /> {student.is_active ? 'Suspend' : 'Activate'}
-                    </button>
-                    <button onClick={() => { setEditingId(student.id); setFormData(student); setShowAddModal(true); }} className="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-1 active:bg-blue-100">
-                      <FaEdit size={12} /> Edit
-                    </button>
-                    <button onClick={() => handleDelete(student.id, student.name)} className="py-2.5 px-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium active:bg-red-100">
-                      <FaTrash size={12} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Quick View Modal */}
@@ -404,7 +479,7 @@ export const Students = () => {
         </div>
       )}
 
-      {/* Add/Edit Modal - Mobile Optimized */}
+      {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
           <div className="bg-white rounded-t-3xl md:rounded-3xl w-full max-w-2xl mx-auto p-5 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
