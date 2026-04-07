@@ -67,28 +67,43 @@ export const Students = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+
+    
+    if (!window.navigator.onLine) {
+      return Swal.fire({
+        title: 'No Internet',
+        text: 'Please check your connection before enrolling a student.',
+        icon: 'warning'
+      });
+    }
+
     setLoading(true);
 
     try {
+      const studentPayload = {
+        name: formData.name,
+        class_name: formData.class_name,
+        gender: formData.gender,
+        dob: formData.dob,
+        parent_name: formData.parent_name,
+        phone: formData.phone,
+        enrollment_date: formData.enrollment_date,
+        address: formData.address,
+        state_of_origin: formData.state_of_origin,
+        lga: formData.lga
+      };
+
       if (editingId) {
+        // UPDATE LOGIC
         const { error } = await supabase
           .from('students')
-          .update({
-            name: formData.name,
-            class_name: formData.class_name,
-            gender: formData.gender,
-            dob: formData.dob,
-            parent_name: formData.parent_name,
-            phone: formData.phone,
-            enrollment_date: formData.enrollment_date,
-            address: formData.address,
-            state_of_origin: formData.state_of_origin,
-            lga: formData.lga
-          })
+          .update(studentPayload)
           .eq('id', editingId);
+        
         if (error) throw error;
         Swal.fire('Updated!', 'Student record updated.', 'success');
       } else {
+        
         const { data: nextId, error: seqErr } = await supabase.rpc('generate_student_id');
         if (seqErr) throw seqErr;
 
@@ -97,31 +112,33 @@ export const Students = () => {
         const firstName = formData.name.split(' ')[0].toLowerCase();
         const initialPassword = `${firstName}123`;
 
+      
         const { data: auth, error: authErr } = await supabase.auth.signUp({
           email: internalEmail,
           password: initialPassword,
         });
 
-        if (authErr) throw authErr;
+        if (authErr) {
+          if (authErr.message.includes("already registered")) {
+            throw new Error(`This Student ID (${nextId}) already has an account. Please contact admin.`);
+          }
+          throw authErr;
+        }
 
+        
         const { error: dbErr } = await supabase.from('students').insert([{
+          ...studentPayload,
           id: auth.user.id, 
           student_id: nextId, 
-          name: formData.name,
-          class_name: formData.class_name,
-          gender: formData.gender,
-          dob: formData.dob,
-          parent_name: formData.parent_name,
-          phone: formData.phone,
           email: internalEmail,
-          enrollment_date: formData.enrollment_date,
-          address: formData.address,
-          state_of_origin: formData.state_of_origin,
-          lga: formData.lga,
           is_active: true
         }]);
 
-        if (dbErr) throw dbErr;
+        if (dbErr) {
+     
+          console.error("Auth Success / DB Failure:", dbErr);
+          throw new Error(`Account created, but database profile failed: ${dbErr.message}`);
+        }
 
         Swal.fire({
           title: 'Enrollment Successful!',
@@ -136,6 +153,7 @@ export const Students = () => {
         });
       }
 
+      
       setShowAddModal(false);
       setFormData({ 
         name: '', class_name: '', gender: '', dob: '', parent_name: '', phone: '',
@@ -144,8 +162,21 @@ export const Students = () => {
       });
       setEditingId(null);
       fetchStudents();
+
     } catch (err) {
-      Swal.fire('Error', err.message, 'error');
+     
+      let errorMessage = err.message;
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network")) {
+        errorMessage = "Network error. Please check your signal and try again.";
+      }
+
+      Swal.fire({
+        title: 'Action Failed',
+        text: errorMessage,
+        icon: 'error',
+        confirmButtonColor: '#3b82f6'
+      });
     } finally {
       setLoading(false);
     }
