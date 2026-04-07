@@ -4,7 +4,7 @@ import {
   FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, 
   FaUsers, FaBook, FaClipboardList, FaSignOutAlt, 
   FaChevronDown, FaChalkboardTeacher, FaCalendarCheck, FaChartBar,
-  FaTimes, FaUserGraduate
+  FaTimes, FaUserGraduate, FaLock
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -51,6 +51,7 @@ const TeacherDashboard = () => {
     { name: 'Results', icon: <FaClipboardList />, path: '/teacher/dashboard/results' },
     { name: 'Reports', icon: <FaChartBar />, path: '/teacher/dashboard/reports' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/teacher/dashboard/profile' },
+    { name: 'Change Password', icon: <FaLock />, path: '/teacher/dashboard/change-password' }, // Added this line
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -165,6 +166,9 @@ const TeacherDashboard = () => {
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                     <Link to="/teacher/dashboard/profile" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">
                       Profile
+                    </Link>
+                    <Link to="/teacher/dashboard/change-password" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                      Change Password
                     </Link>
                     <hr className="my-2 border-gray-100" />
                     <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50">

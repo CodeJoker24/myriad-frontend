@@ -5,7 +5,7 @@ import {
   FaPlus, FaTrash, FaSearch, FaTimes, FaSpinner, FaEdit, 
   FaLock, FaUnlock, FaPhone, FaBook, FaUsers, FaChevronRight, 
   FaChalkboardTeacher, FaEnvelope, FaUserGraduate, FaFilter,
-  FaChevronDown
+  FaChevronDown, FaEye
 } from 'react-icons/fa';
 
 export const Teachers = () => {
@@ -23,6 +23,8 @@ export const Teachers = () => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingTeacher, setViewingTeacher] = useState(null);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -59,6 +61,11 @@ export const Teachers = () => {
     });
   };
 
+  const handleViewClick = (teacher) => {
+    setViewingTeacher(teacher);
+    setShowViewModal(true);
+  };
+
   const handleEditClick = (teacher) => {
     setEditingId(teacher.id);
     setFormData({
@@ -72,93 +79,81 @@ export const Teachers = () => {
     setShowAddModal(true);
   };
 
- const handleSave = async (e) => {
-  e.preventDefault();
+  const handleSave = async (e) => {
+    e.preventDefault();
 
- 
-  if (!window.navigator.onLine) {
-    return Swal.fire({
-      title: 'No Connection',
-      text: 'Your internet appears to be offline. Please reconnect and try again.',
-      icon: 'warning'
-    });
-  }
-
-  setLoading(true);
-  try {
-    const payload = {
-      name: formData.name,
-      phone: formData.phone,
-      subjects: formData.subjects,
-      classes: formData.classes,
-      is_class_teacher_of: formData.is_class_teacher_of || null,
-    };
-
-    if (editingId) {
-      const { error } = await supabase
-        .from('teachers')
-        .update(payload)
-        .eq('id', editingId);
-      
-      if (error) throw error;
-      Swal.fire('Updated!', 'Teacher profile updated successfully.', 'success');
-    } else {
-      
-      const { data: auth, error: authErr } = await supabase.auth.signUp({
-        email: formData.email,
-        password: '123456',
+    if (!window.navigator.onLine) {
+      return Swal.fire({
+        title: 'No Connection',
+        text: 'Your internet appears to be offline. Please reconnect and try again.',
+        icon: 'warning'
       });
+    }
 
-      if (authErr) {
-        throw authErr;
-      }
+    setLoading(true);
+    try {
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        subjects: formData.subjects,
+        classes: formData.classes,
+        is_class_teacher_of: formData.is_class_teacher_of || null,
+      };
 
-      
-      const { error: dbErr } = await supabase.from('teachers').insert([{
-        ...payload,
-        id: auth.user.id,
-        email: formData.email,
-        is_first_login: true,
-        is_active: true
-      }]);
-
-      if (dbErr) {
+      if (editingId) {
+        const { error } = await supabase
+          .from('teachers')
+          .update(payload)
+          .eq('id', editingId);
         
-        throw new Error(`Auth account created, but profile setup failed: ${dbErr.message}`);
+        if (error) throw error;
+        Swal.fire('Updated!', 'Teacher profile updated successfully.', 'success');
+      } else {
+        const { data: auth, error: authErr } = await supabase.auth.signUp({
+          email: formData.email,
+          password: '123456',
+        });
+
+        if (authErr) throw authErr;
+
+        const { error: dbErr } = await supabase.from('teachers').insert([{
+          ...payload,
+          id: auth.user.id,
+          email: formData.email,
+          is_first_login: true,
+          is_active: true
+        }]);
+
+        if (dbErr) throw new Error(`Auth account created, but profile setup failed: ${dbErr.message}`);
+
+        Swal.fire('Created!', 'Teacher added with default password 123456', 'success');
       }
 
-      Swal.fire('Created!', 'Teacher added with default password 123456', 'success');
+      setShowAddModal(false);
+      setEditingId(null);
+      setFormData({ name: '', email: '', phone: '', subjects: [], classes: [], is_class_teacher_of: '' });
+      fetchTeachers();
+
+    } catch (err) {
+      let friendlyMessage = err.message;
+
+      if (friendlyMessage.includes("Failed to fetch") || friendlyMessage.includes("network")) {
+        friendlyMessage = "Connection lost! Please check your internet and try again.";
+      } 
+      else if (friendlyMessage.includes("already registered")) {
+        friendlyMessage = "This email is already registered. If the profile is missing, please contact the DB admin.";
+      }
+
+      Swal.fire({
+        title: 'Error',
+        text: friendlyMessage,
+        icon: 'error',
+        confirmButtonColor: '#3b82f6'
+      });
+    } finally {
+      setLoading(false);
     }
-
-    // Reset state on success
-    setShowAddModal(false);
-    setEditingId(null);
-    setFormData({ name: '', email: '', phone: '', subjects: [], classes: [], is_class_teacher_of: '' });
-    fetchTeachers();
-
-  } catch (err) {
-
-    let friendlyMessage = err.message;
-
-   
-    if (friendlyMessage.includes("Failed to fetch") || friendlyMessage.includes("network")) {
-      friendlyMessage = "Connection lost! Please check your internet and try again.";
-    } 
-    
-    else if (friendlyMessage.includes("already registered")) {
-      friendlyMessage = "This email is already registered. If the profile is missing, please contact the DB admin.";
-    }
-
-    Swal.fire({
-      title: 'Error',
-      text: friendlyMessage,
-      icon: 'error',
-      confirmButtonColor: '#3b82f6'
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const toggleStatus = async (id, currentStatus, name) => {
     const { error } = await supabase
@@ -343,6 +338,9 @@ export const Teachers = () => {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2">
+                            <button onClick={() => handleViewClick(t)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="View Details">
+                              <FaEye size={14} />
+                            </button>
                             <button onClick={() => toggleStatus(t.id, t.is_active, t.name)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-orange-500">
                               {t.is_active ? <FaLock size={14} /> : <FaUnlock size={14} />}
                             </button>
@@ -401,6 +399,14 @@ export const Teachers = () => {
                   {/* Card Expanded Content */}
                   {expandedCard === t.id && (
                     <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-3">
+                      {/* View Button at top of expanded section */}
+                      <button 
+                        onClick={() => handleViewClick(t)} 
+                        className="w-full py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:bg-indigo-100"
+                      >
+                        <FaEye size={14} /> View Full Details
+                      </button>
+
                       {/* Designation */}
                       <div className="bg-purple-50 rounded-xl p-3">
                         <div className="flex items-center gap-2 mb-1">
@@ -476,6 +482,100 @@ export const Teachers = () => {
             )}
           </div>
         </>
+      )}
+
+      {/* View Teacher Modal */}
+      {showViewModal && viewingTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowViewModal(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-2xl mx-auto p-6 shadow-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6 sticky top-0 bg-white pb-2">
+              <h2 className="text-xl font-bold text-gray-900">Teacher Details</h2>
+              <button onClick={() => setShowViewModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                <FaTimes size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Header with Avatar */}
+              <div className="flex items-center gap-4 pb-4 border-b">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <FaChalkboardTeacher className="text-primary text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{viewingTeacher.name}</h3>
+                  <p className="text-sm text-gray-500">{viewingTeacher.email}</p>
+                </div>
+              </div>
+
+              {/* Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase">Phone</p>
+                  <p className="text-gray-800 font-medium">{viewingTeacher.phone || 'N/A'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase">Designation</p>
+                  <p className="text-gray-800 font-medium">
+                    {viewingTeacher.is_class_teacher_of ? `Form Teacher - ${viewingTeacher.is_class_teacher_of}` : 'Subject Specialist'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase">Status</p>
+                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold ${viewingTeacher.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {viewingTeacher.is_active ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase">First Login</p>
+                  <p className="text-gray-800 font-medium">{viewingTeacher.is_first_login ? 'Yes (Pending)' : 'Completed'}</p>
+                </div>
+              </div>
+
+              {/* Subjects List */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <FaBook className="text-primary" /> Subjects Taught
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingTeacher.subjects && viewingTeacher.subjects.length > 0 ? (
+                    viewingTeacher.subjects.map(s => (
+                      <span key={s} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-xl text-sm font-medium">
+                        {s}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No subjects assigned</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Classes List */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <FaUsers className="text-primary" /> Classes Assigned
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingTeacher.classes && viewingTeacher.classes.length > 0 ? (
+                    viewingTeacher.classes.map(c => (
+                      <span key={c} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-xl text-sm font-medium">
+                        {c}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No classes assigned</p>
+                  )}
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setShowViewModal(false)} 
+                className="w-full bg-primary text-white py-3 rounded-xl font-semibold mt-4"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Add/Edit Modal - Mobile Responsive (Bottom Sheet) */}
