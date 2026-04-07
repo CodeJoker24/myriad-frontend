@@ -16,11 +16,25 @@ const TeacherDashboard = () => {
   const location = useLocation();
   const [teacher, setTeacher] = useState(null);
 
-  useEffect(() => {
+  // Function to load teacher data from localStorage
+  const loadTeacherData = () => {
     const teacherData = localStorage.getItem('teacher');
     if (teacherData) {
       setTeacher(JSON.parse(teacherData));
     }
+  };
+
+  useEffect(() => {
+    
+    loadTeacherData();
+
+  
+    window.addEventListener("userUpdated", loadTeacherData);
+
+  
+    return () => {
+      window.removeEventListener("userUpdated", loadTeacherData);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -51,7 +65,7 @@ const TeacherDashboard = () => {
     { name: 'Results', icon: <FaClipboardList />, path: '/teacher/dashboard/results' },
     { name: 'Reports', icon: <FaChartBar />, path: '/teacher/dashboard/reports' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/teacher/dashboard/profile' },
-    { name: 'Change Password', icon: <FaLock />, path: '/teacher/dashboard/change-password' }, // Added this line
+    { name: 'Change Password', icon: <FaLock />, path: '/teacher/dashboard/change-password' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -153,8 +167,16 @@ const TeacherDashboard = () => {
 
               <div className="relative">
                 <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 hover:bg-gray-100 rounded-xl p-2">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <FaChalkboardTeacher className="text-primary text-xl" />
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex items-center justify-center bg-primary/10">
+                    {teacher?.profile_image ? (
+                      <img 
+                        src={teacher.profile_image} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <FaChalkboardTeacher className="text-primary text-xl" />
+                    )}
                   </div>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-semibold text-gray-800">{teacher?.name || 'Teacher'}</p>
