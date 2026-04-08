@@ -204,8 +204,8 @@ const sidebarLinks = [
                     <Link to="/admin/dashboard/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Profile
                     </Link>
-                    <Link to="/admin/dashboard/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Settings
+                    <Link to="/admin/dashboard/change-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Change Password
                     </Link>
                     <hr className="my-2" />
                     <button

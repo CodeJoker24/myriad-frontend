@@ -2,6 +2,7 @@ import { useState, useEffect} from 'react';
 import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaCamera, FaClipboardList, FaSpinner} from 'react-icons/fa';
 import { supabase } from '../../../db';
 import Swal from 'sweetalert2';
+import imageCompression from "browser-image-compression";
 export const SiteManagement = () => {
   const [activeTab, setActiveTab] = useState('hero');
   const [hero, setHero] = useState({ 
@@ -103,46 +104,49 @@ const HeroUI = () => {
   }, []);
 
   
-  const handleImageUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+ const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  if(file.size > 2 * 1024 * 1024){
-    return Swal.fire('Too large', 'Please upload an image smaller than 2mb', 'warning')
-  }
-  try {
-    setLoading(true);
-    
-   
-    const filePath = `hero_main_static.png`; 
+    try {
+      setLoading(true);
 
     
-    const { error: uploadError } = await supabase.storage
-      .from('site-content')
-      .upload(filePath, file, { 
-        upsert: true,
-        contentType: file.type,
-      });
-
-    if (uploadError) throw uploadError;
-
+      const options = {
+        maxSizeMB: 1,           
+        maxWidthOrHeight: 1920, 
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      
     
-    const { data } = supabase.storage
-      .from('site-content')
-      .getPublicUrl(filePath);
+      const filePath = `hero_main_static.png`; 
 
-    
-    const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+      const { error: uploadError } = await supabase.storage
+        .from('site-content')
+        .upload(filePath, compressedFile, { 
+          upsert: true,
+          contentType: file.type,
+        });
 
-    setHero(prev=>({...prev, image_url:finalUrl}));
-    Swal.fire('Updated!', 'New image is ready. Save to make it live.', 'success');
+      if (uploadError) throw uploadError;
 
-  } catch (error) {
-    Swal.fire('Error', error.message, 'error');
-  } finally {
-    setLoading(false);
-  }
-};
+      const { data } = supabase.storage
+        .from('site-content')
+        .getPublicUrl(filePath);
+
+      const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+
+      setHero(prev => ({...prev, image_url: finalUrl}));
+      Swal.fire('Updated!', 'New image is ready. Save to make it live.', 'success');
+
+    } catch (error) {
+      Swal.fire('Error', error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const handleSave = async () => {
@@ -625,43 +629,49 @@ const AboutUI = () => {
   };
 
 const handleImageUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-   if (file.size > 2 * 1024 * 1024) {
-  return Swal.fire("Error", "Image is too large (Max 2MB)", "error");
-  }
-  try {
-    setLoading(true);
-    
-   
-    const filePath = `about_section_static.png`; 
+    const file = e.target.files[0];
+    if (!file) return;
 
-    const { error: uploadError } = await supabase.storage
-      .from('site-content')
-      .upload(filePath, file, { 
-        upsert: true,
-        contentType: file.type
-      });
+    try {
+      setLoading(true);
 
-    if (uploadError) throw uploadError;
+      
+      const options = {
+        maxSizeMB: 0.8,         
+        maxWidthOrHeight: 1200, 
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
 
-    const { data } = supabase.storage
-      .from('site-content')
-      .getPublicUrl(filePath);
+     
+      const filePath = `about_section_static.png`; 
 
-    const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+      const { error: uploadError } = await supabase.storage
+        .from('site-content')
+        .upload(filePath, compressedFile, { 
+          upsert: true,
+          contentType: file.type
+        });
 
-   
-   setContent(prev => ({ ...prev, image_url: finalUrl }));  
-    
-    Swal.fire('Updated!', 'New image is ready. Save to make it live.', 'success');
+      if (uploadError) throw uploadError;
 
-  } catch (error) {
-    Swal.fire('Error', error.message, 'error');
-  } finally {
-    setLoading(false);
-  }
-};
+      const { data } = supabase.storage
+        .from('site-content')
+        .getPublicUrl(filePath);
+
+      const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
+
+      setContent(prev => ({ ...prev, image_url: finalUrl }));   
+      
+      Swal.fire('Optimized!', 'New image compressed and ready.', 'success');
+
+    } catch (error) {
+      Swal.fire('Error', error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">

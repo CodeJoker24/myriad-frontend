@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../db';
 import { FaUser, FaCamera, FaSave, FaSpinner, FaBook,FaChalkboardTeacher} from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import imageCompression from "browser-image-compression"
+import imageCompression from "browser-image-compression";
 
 const TeacherProfile = () => {
   const [loading, setLoading] = useState(false);

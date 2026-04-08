@@ -3,7 +3,7 @@ import Swal from 'sweetalert2';
 import { useState} from 'react';
 import API from '../../../api';
 import { supabase } from '../../../db';
-
+import imageCompression from "browser-image-compression";
 
 
 export const Profile = () => {
@@ -20,24 +20,42 @@ export const Profile = () => {
 
 
 
-const handleImageSelect = (event) => {
+const handleImageSelect = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      return Swal.fire("Error", "Image is too large (Max 2MB)", "error");
+   
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return Swal.fire("Invalid Format", "Please upload a JPG, PNG, or WebP image.", "warning");
     }
-    if(preview){
-      URL.revokeObjectURL(preview);
+
+    try {
+      // Compression Options
+      const options = {
+        maxSizeMB: 0.6,          
+        maxWidthOrHeight: 800,   
+        useWebWorker: true,
+      };
+
+    
+      const compressedFile = await imageCompression(file, options);
+
+      
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+
+      
+      const objectUrl = URL.createObjectURL(compressedFile);
+      setPreview(objectUrl);
+      setSelectedFile(compressedFile);
+
+    } catch (error) {
+      console.error("Compression error:", error);
+      Swal.fire("Error", "Failed to process image.", "error");
     }
-
-    setSelectedFile(file);
-
-
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
   };
-
 
 
  const Update = async (x) => {
