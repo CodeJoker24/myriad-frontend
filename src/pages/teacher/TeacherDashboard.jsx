@@ -199,7 +199,7 @@ const TeacherDashboard = () => {
                       My Profile
                     </Link>
                     <Link to="/teacher/dashboard/change-password" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
-                      Security Settings
+                     Change Password
                     </Link>
                     <hr className="my-1 border-gray-100" />
                     <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-semibold">

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../../db';
 import { FaUser, FaCamera, FaSave, FaSpinner, FaBook,FaChalkboardTeacher} from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import imageCompression from "browser-image-compression"
 
 const TeacherProfile = () => {
   const [loading, setLoading] = useState(false);
@@ -49,37 +50,37 @@ const TeacherProfile = () => {
   }, []);
 
   
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleImageSelect = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      Swal.fire('Invalid Type', 'Please upload a JPG, PNG, or WebP image.', 'warning');
-      e.target.value = ""; 
-      return;
-    }
+  
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    Swal.fire('Invalid Type', 'Please upload a JPG, PNG, or WebP image.', 'warning');
+    return;
+  }
 
-    
-    const maxSize = 2 * 1024 * 1024;
-    if (file.size > maxSize) {
-      Swal.fire({
-        icon: 'error',
-        title: 'File too large',
-        text: 'Please select an image smaller than 2MB.',
-        confirmButtonColor: '#3B82F6',
-      });
-      e.target.value = ""; 
-      return;
-    }
+  try {
+    // 2. Compression Options
+    const options = {
+      maxSizeMB: 0.6,          
+      maxWidthOrHeight: 800,   
+      useWebWorker: true,
+    };
 
    
-    if (previewUrl) URL.revokeObjectURL(previewUrl); 
-    const localUrl = URL.createObjectURL(file);
-    setPreviewUrl(localUrl);
-    setSelectedFile(file);
-  };
+    const compressedFile = await imageCompression(file, options);
+
+    
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(URL.createObjectURL(compressedFile));
+    setSelectedFile(compressedFile); 
+    
+  } catch (error) {
+    console.error("Compression error:", error);
+    Swal.fire('Error', 'Failed to process image', 'error');
+  }
+};
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
