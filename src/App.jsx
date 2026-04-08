@@ -6,7 +6,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import TeacherSignIn from './pages/teacher/TeacherSignIn';
 import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import { TeacherHome } from './pages/teacher/dashboard/TeacherHome';
-import { TeacherProfile } from './pages/teacher/dashboard/TeacherProfile';
+import  TeacherProfile  from './pages/teacher/dashboard/TeacherProfile';
 import MyClass from './pages/teacher/dashboard/MyClass';
 import { TeacherChangePassword } from './pages/teacher/dashboard/TeacherChangePassword';
 import { TeacherResetPassword } from './pages/teacher/dashboard/TeacherResetPassword';

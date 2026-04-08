@@ -3,7 +3,7 @@ import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
   FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, 
   FaUsers, FaBook, FaClipboardList, FaSignOutAlt, 
-  FaChevronDown, FaChalkboardTeacher, FaCalendarCheck, FaChartBar,
+  FaChevronDown, FaCalendarCheck, FaChartBar,
   FaTimes, FaUserGraduate, FaLock
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
@@ -16,7 +16,7 @@ const TeacherDashboard = () => {
   const location = useLocation();
   const [teacher, setTeacher] = useState(null);
 
-  // Function to load teacher data from localStorage
+
   const loadTeacherData = () => {
     const teacherData = localStorage.getItem('teacher');
     if (teacherData) {
@@ -25,13 +25,11 @@ const TeacherDashboard = () => {
   };
 
   useEffect(() => {
-    
     loadTeacherData();
 
   
     window.addEventListener("userUpdated", loadTeacherData);
 
-  
     return () => {
       window.removeEventListener("userUpdated", loadTeacherData);
     };
@@ -71,7 +69,10 @@ const TeacherDashboard = () => {
   const isActive = (path) => location.pathname === path;
 
   const handleLinkClick = () => {
-    setSidebarOpen(false);
+    // Close sidebar on mobile after clicking a link
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
   };
 
   return (
@@ -119,7 +120,7 @@ const TeacherDashboard = () => {
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main Content */}
-      <div className="transition-all duration-300">
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'ml-0'}`}>
         {/* Topbar */}
         <header className="h-20 bg-white shadow-sm fixed top-0 right-0 left-0 z-10">
           <div className="h-full px-6 flex items-center justify-between">
@@ -132,9 +133,7 @@ const TeacherDashboard = () => {
               </button>
             )}
 
-            {sidebarOpen && <div className="w-10 lg:hidden"></div>}
-
-            <div className={`flex-1 max-w-md ${!sidebarOpen ? 'ml-4' : 'mx-4'}`}>
+            <div className="flex-1 max-w-md mx-4 hidden sm:block">
               <div className="relative">
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input 
@@ -145,7 +144,8 @@ const TeacherDashboard = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 ml-auto">
+              {/* Notifications */}
               <div className="relative">
                 <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 hover:bg-gray-100 rounded-xl">
                   <FaBell className="text-gray-600 text-xl" />
@@ -156,45 +156,54 @@ const TeacherDashboard = () => {
                     <div className="px-5 py-3 border-b border-gray-100">
                       <h3 className="font-semibold text-gray-800">Notifications</h3>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      <div className="px-5 py-4">
-                        <p className="text-sm text-gray-500">No new notifications</p>
-                      </div>
+                    <div className="max-h-96 overflow-y-auto p-4">
+                      <p className="text-sm text-gray-500">No new notifications</p>
                     </div>
                   </div>
                 )}
               </div>
 
+              {/* User Menu & Profile Image Replacement */}
               <div className="relative">
-                <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 hover:bg-gray-100 rounded-xl p-2">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-100 flex items-center justify-center bg-primary/10">
+                <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 hover:bg-gray-100 rounded-xl p-1.5 transition-colors">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center bg-primary/10">
                     {teacher?.profile_image ? (
                       <img 
                         src={teacher.profile_image} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover" 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                           e.target.src = "https://ui-avatars.com/api/?name=" + (teacher?.name || "Teacher") + "&background=random";
+                        }}
                       />
                     ) : (
-                      <FaChalkboardTeacher className="text-primary text-xl" />
+                      <div className="w-full h-full flex items-center justify-center text-primary bg-primary/10 text-lg font-bold">
+                        {teacher?.name?.charAt(0) || <FaUserCircle />}
+                      </div>
                     )}
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-semibold text-gray-800">{teacher?.name || 'Teacher'}</p>
-                    <p className="text-xs text-gray-500">{teacher?.email || 'teacher@myriad.com'}</p>
+                    <p className="text-sm font-bold text-gray-800 leading-tight">{teacher?.name || 'Teacher'}</p>
+                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Teacher Account</p>
                   </div>
-                  <FaChevronDown className={`text-xs text-gray-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <FaChevronDown className={`text-[10px] text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
                 </button>
+
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <Link to="/teacher/dashboard/profile" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                      Profile
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
+                    <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
+                        <p className="text-sm font-semibold text-gray-800 truncate">{teacher?.email}</p>
+                    </div>
+                    <Link to="/teacher/dashboard/profile" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
+                      My Profile
                     </Link>
-                    <Link to="/teacher/dashboard/change-password" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                      Change Password
+                    <Link to="/teacher/dashboard/change-password" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
+                      Security Settings
                     </Link>
-                    <hr className="my-2 border-gray-100" />
-                    <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50">
-                      Logout
+                    <hr className="my-1 border-gray-100" />
+                    <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-semibold">
+                      Sign Out
                     </button>
                   </div>
                 )}

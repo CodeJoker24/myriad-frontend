@@ -1,269 +1,263 @@
 import { useState, useEffect } from 'react';
-import { FaUser, FaCamera, FaChevronDown } from 'react-icons/fa';
+import { supabase } from '../../../db';
+import { 
+  FaUser, FaCamera, FaSave, FaSpinner, FaBook, FaUsers, FaChalkboardTeacher 
+} from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import { supabase } from '../../../db'; // Ensure this path is correct
 
-export const TeacherProfile = () => {
+const TeacherProfile = () => {
   const [loading, setLoading] = useState(false);
   const [teacher, setTeacher] = useState(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [gender, setGender] = useState("");
-  const [religion, setReligion] = useState("");
-  const [stateOfOrigin, setStateOfOrigin] = useState("");
-  const [lga, setLga] = useState("");
-  const [preview, setPreview] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  
+ 
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [gender, setGender] = useState('');
+  const [state, setState] = useState('');
+  const [lga, setLga] = useState('');
+  const [profileImage, setProfileImage] = useState(null); 
+  const [selectedFile, setSelectedFile] = useState(null); 
+  const [previewUrl, setPreviewUrl] = useState(null);    
 
   useEffect(() => {
-    const teacherData = JSON.parse(localStorage.getItem('teacher'));
-    if (teacherData) {
-      setTeacher(teacherData);
-      setName(teacherData.name || "");
-      setEmail(teacherData.email || "");
-      setPhone(teacherData.phone || "");
-      setGender(teacherData.gender || "");
-      setReligion(teacherData.religion || "");
-      setStateOfOrigin(teacherData.state_of_origin || "");
-      setLga(teacherData.lga || "");
-    }
+    const fetchProfile = async () => {
+      const teacherData = JSON.parse(localStorage.getItem('teacher'));
+      if (teacherData) {
+        const { data, error } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('id', teacherData.id)
+          .single();
+
+        if (data) {
+          setTeacher(data);
+          setName(data.name || '');
+          setPhone(data.phone || '');
+          setAddress(data.address || '');
+          setGender(data.gender || '');
+          setState(data.state_of_origin || '');
+          setLga(data.lga || '');
+          setProfileImage(data.profile_image || null);
+        }
+      }
+    };
+    fetchProfile();
   }, []);
 
-  const nigerianStates = [
-    "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", 
-    "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", 
-    "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", 
-    "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", 
-    "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT"
-  ];
-
-  const handleImageSelect = (event) => {
-    const file = event.target.files[0];
+  
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      return Swal.fire("Error", "Image is too large (Max 2MB)", "error");
-    }
-    
-    if (preview) URL.revokeObjectURL(preview);
-
+  
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
     setSelectedFile(file);
-    setPreview(URL.createObjectURL(file));
   };
 
-  const handleUpdate = async (e) => {
+  const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      let finalImageUrl = teacher?.profile_image;
+      let finalImageUrl = profileImage;
 
      
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `teacher-${teacher.id}.${fileExt}`;
+        const fileName = `${teacher.id}-${Date.now()}.${fileExt}`;
+        const filePath = `teacher-profiles/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(fileName, selectedFile, { upsert: true });
+          .upload(filePath, selectedFile);
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
+        const { data: { publicUrl } } = supabase.storage
           .from('avatars')
-          .getPublicUrl(fileName);
-
-        finalImageUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+          .getPublicUrl(filePath);
+        
+        finalImageUrl = publicUrl;
       }
 
-    
-      const { error: updateError } = await supabase
+     
+      const { error } = await supabase
         .from('teachers')
         .update({
           name,
           phone,
+          address,
           gender,
-          religion,
-          state_of_origin: stateOfOrigin,
+          state_of_origin: state,
           lga,
           profile_image: finalImageUrl
         })
-        .eq('id', teacher?.id);
+        .eq('id', teacher.id);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-    
+     
       const updatedTeacher = { 
         ...teacher, 
-        name, phone, gender, religion, 
-        state_of_origin: stateOfOrigin, lga, 
+        name, phone, address, gender, 
+        state_of_origin: state, lga, 
         profile_image: finalImageUrl 
       };
-      
-      localStorage.setItem('teacher', JSON.stringify(updatedTeacher));
-      setTeacher(updatedTeacher);
-      setPreview(null);
-      setSelectedFile(null);
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Profile Updated',
-        text: 'Your changes have been saved successfully!',
-        timer: 2000,
-      });
-    } catch (err) {
-      console.error("Update Error:", err);
-      Swal.fire({ icon: 'error', title: 'Update Failed', text: err.message });
+      setProfileImage(finalImageUrl);
+      setTeacher(updatedTeacher);
+      localStorage.setItem('teacher', JSON.stringify(updatedTeacher));
+      
+      window.dispatchEvent(new Event("userUpdated"));
+
+     
+      setSelectedFile(null);
+      setPreviewUrl(null);
+
+      Swal.fire('Success', 'Profile updated successfully!', 'success');
+    } catch (error) {
+      Swal.fire('Error', error.message, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <form onSubmit={handleUpdate}>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Teacher Profile</h1>
-          <p className="text-gray-500 mt-1">Update your professional and personal details</p>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column: Profile Card */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+            <div className="relative w-32 h-32 mx-auto mb-4">
+              <div className="w-full h-full rounded-2xl overflow-hidden bg-primary/10 border-4 border-white shadow-md">
+               
+                {previewUrl || profileImage ? (
+                  <img src={previewUrl || profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-primary text-4xl font-bold">
+                    {name?.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <label className="absolute bottom-1 right-1 p-2 bg-primary text-white rounded-xl shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                <FaCamera size={14} />
+                <input type="file" className="hidden" onChange={handleImageSelect} accept="image/*" />
+              </label>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">{name}</h2>
+            <p className="text-sm text-gray-500">{teacher?.email}</p>
+            
+            {teacher?.is_class_teacher_of && (
+              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold border border-purple-100">
+                <FaChalkboardTeacher />
+                FORM TEACHER: {teacher.is_class_teacher_of}
+              </div>
+            )}
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Column: Avatar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
-              <div className="text-center">
-                <div className="relative inline-block">
-                  <label className="cursor-pointer group">
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
-                    <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg group-hover:border-primary transition-all duration-300 relative">
-                      {preview ? (
-                        <img src={preview} className="w-full h-full object-cover" alt="Preview" />
-                      ) : teacher?.profile_image ? (
-                        <img src={teacher.profile_image} className="w-full h-full object-cover" alt="Profile" />
-                      ) : (
-                        <div className="w-full h-full bg-gray-50 flex items-center justify-center">
-                          <FaUser className="text-4xl text-gray-300" />
-                        </div>
-                      )}
-                      {loading && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg">
-                      <FaCamera size={14} />
-                    </div>
-                  </label>
+          {/* Academic Summary Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <FaBook className="text-primary" /> Academic Assignments
+              </h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Class Teacher Role</label>
+                <p className="text-sm font-semibold text-gray-700 mt-1">
+                  {teacher?.is_class_teacher_of || "No Form Class Assigned"}
+                </p>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Classes</label>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {teacher?.classes?.length > 0 ? (
+                    teacher.classes.map(c => (
+                      <span key={c} className="px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-[11px] font-bold border border-blue-100">
+                        {c}
+                      </span>
+                    ))
+                  ) : <p className="text-xs text-gray-400 italic">None</p>}
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 mt-4">{teacher?.name}</h2>
-                <p className="text-sm text-gray-500">{teacher?.email}</p>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Subjects Taught</label>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {teacher?.subjects?.length > 0 ? (
+                    teacher.subjects.map(s => (
+                      <span key={s} className="px-2 py-1 bg-green-50 text-green-600 rounded-md text-[11px] font-bold border border-green-100">
+                        {s}
+                      </span>
+                    ))
+                  ) : <p className="text-xs text-gray-400 italic">None</p>}
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Right Column: Fields */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+        {/* Right Column: Edit Profile Form */}
+        <div className="lg:col-span-2">
+          <form onSubmit={handleUpdateProfile} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <FaUser className="text-primary" /> Personal Information
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Full Name</label>
+                <input required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary outline-none transition" />
               </div>
-              
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Name */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">Full Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
 
-                {/* Email (Read Only) */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">Email (Fixed)</label>
-                  <input
-                    type="email"
-                    value={email}
-                    disabled
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-500"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Phone Number</label>
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary outline-none transition" />
+              </div>
 
-                {/* Gender */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">Gender</label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Residential Address</label>
+                <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary outline-none transition" />
+              </div>
 
-                {/* Religion */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">Religion</label>
-                  <select
-                    value={religion}
-                    onChange={(e) => setReligion(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none"
-                  >
-                    <option value="">Select Religion</option>
-                    <option value="Christianity">Christianity</option>
-                    <option value="Islam">Islam</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Gender</label>
+                <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary outline-none transition">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
 
-                {/* State of Origin */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">State of Origin</label>
-                  <div className="relative">
-                    <select
-                      value={stateOfOrigin}
-                      onChange={(e) => setStateOfOrigin(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl appearance-none outline-none"
-                    >
-                      <option value="">Select State</option>
-                      {nigerianStates.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <FaChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">State of Origin</label>
+                <input value={state} onChange={(e) => setState(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary outline-none transition" />
+              </div>
 
-                {/* LGA */}
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-700">LGA</label>
-                  <input
-                    type="text"
-                    value={lga}
-                    onChange={(e) => setLga(e.target.value)}
-                    placeholder="Enter LGA"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl outline-none"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">L.G.A</label>
+                <input value={lga} onChange={(e) => setLga(e.target.value)} className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary outline-none transition" />
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <button 
-                type="submit" 
+            <div className="mt-8 flex justify-end">
+              <button
+                type="submit"
                 disabled={loading}
-                className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-medium transition-all shadow-sm flex items-center gap-2"
+                className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-primary/20"
               >
-                {loading ? "Saving..." : "Save Changes"}
+                {loading ? <FaSpinner className="animate-spin" /> : <FaSave />}
+                Save Changes
               </button>
             </div>
-          </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
+
+export default TeacherProfile;
