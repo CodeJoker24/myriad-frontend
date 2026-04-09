@@ -1,6 +1,7 @@
 import { useState, useEffect} from 'react';
 import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaCamera, FaClipboardList, FaSpinner} from 'react-icons/fa';
 import { supabase } from '../../../db';
+import { logActivity } from '../../../db';
 import Swal from 'sweetalert2';
 import imageCompression from "browser-image-compression";
 export const SiteManagement = () => {
@@ -161,6 +162,7 @@ const HeroUI = () => {
 
     setLoading(false);
     if (!error) {
+      await logActivity("Updated the Website Hero Section", "site");
       Swal.fire('Live!', 'Hero section has been updated.', 'success');
     } else {
       Swal.fire('Error', error.message, 'error');
@@ -281,7 +283,10 @@ const StatsUI = () => {
       .upsert({ id: 1, ...stats });
     
     setLoading(false);
-    if (!error) Swal.fire('Updated!', 'Statistics are now live.', 'success');
+    if (!error) {
+      await logActivity("Updated school statistics/counters", "site");
+      Swal.fire('Updated!', 'Statistics are now live.', 'success');
+    }
     else Swal.fire('Error', error.message, 'error');
   };
 
@@ -336,6 +341,7 @@ const TestimonialsUI = () => {
     const { error } = await supabase.from('landing_testimonials').insert([formData]);
     setLoading(false);
     if (!error) {
+      await logActivity(`Added a new testimonial from ${formData.name}`, "site");
       setFormData({ name: '', role: '', content: '', rating: 5 });
       fetchTestimonials();
       Swal.fire('Added!', 'Testimonial joined the list.', 'success');
@@ -441,7 +447,10 @@ const ContactUI = () => {
     setLoading(true);
     const { error } = await supabase.from('landing_contact').upsert({ id: 1, ...contact });
     setLoading(false);
-    if (!error) Swal.fire('Updated!', 'Contact & Hours are now live.', 'success');
+    if (!error) {
+      await logActivity("Updated school contact information and hours", "site");
+      Swal.fire('Updated!', 'Contact & Hours are now live.', 'success');
+    }
   };
 
   return (
@@ -545,6 +554,7 @@ const AdmissionsUI = () => {
     setLoading(false);
 
     if (!error) {
+      await logActivity("Updated admission application deadlines", "site");
       Swal.fire({
         title: 'Success!',
         text: 'Admission dates updated on the live site.',
@@ -625,7 +635,11 @@ const AboutUI = () => {
     setLoading(true);
     const { error } = await supabase.from('about_content').upsert({ id: 1, ...content });
     setLoading(false);
-    if (!error) Swal.fire('Success', 'About content updated!', 'success');
+    if (!error) {
+      await logActivity("Updated 'About Us' mission and vision content", "site");
+      Swal.fire('Success', 'About content updated!', 'success');
+    }
+
   };
 
 const handleImageUpload = async (e) => {

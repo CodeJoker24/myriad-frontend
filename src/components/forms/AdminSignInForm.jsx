@@ -3,6 +3,7 @@ import { FaEnvelope, FaLock, FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import API from '../../api';
+import { logActivity } from '../../db';
 
 const AdminSignInForm = () => {
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,7 @@ const AdminSignInForm = () => {
       }
       localStorage.setItem("user", JSON.stringify(response.data.user))
       localStorage.setItem("session", JSON.stringify(response.data.session))
+      await logActivity(`${user.email} signed into the admin panel`, 'security');
       setLoading(false);
       navigate("/admin/dashboard");
     }

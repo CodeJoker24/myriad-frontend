@@ -4,9 +4,10 @@ import Swal from 'sweetalert2';
 import { 
   FaPlus, FaEdit, FaTrash, FaBan, FaSearch, FaTimes, 
   FaSpinner, FaFilter, FaChevronDown, FaUserGraduate, FaEye,
-  FaEnvelope, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars,
+  FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaVenusMars,
   FaIdCard, FaGraduationCap, FaChevronRight
 } from 'react-icons/fa';
+import { logActivity } from '../../../../../db';
 
 export const Students = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -101,6 +102,7 @@ export const Students = () => {
           .eq('id', editingId);
         
         if (error) throw error;
+        await logActivity(`Updated details for student: ${formData.name}`, 'student');
         Swal.fire('Updated!', 'Student record updated.', 'success');
       } else {
         
@@ -140,6 +142,7 @@ export const Students = () => {
           throw new Error(`Account created, but database profile failed: ${dbErr.message}`);
         }
 
+        await logActivity(`Newly enrolled student: ${formData.name} (${nextId})`, 'student');
         Swal.fire({
           title: 'Enrollment Successful!',
           html: `

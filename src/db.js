@@ -10,3 +10,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey,{
         autoRefreshToken:true,
     }
 });
+
+export const logActivity = async (text, category) => {
+  await supabase
+    .from('activity_logs')
+    .insert([{ action_text: text, category: category }]);
+};
