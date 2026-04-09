@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../../db';
+import { logActivity } from '../../../../../db';
 import Swal from 'sweetalert2';
 import { 
   FaPlus, FaTrash, FaSearch, FaTimes, FaSpinner, FaEdit, 
@@ -107,6 +108,7 @@ export const Teachers = () => {
           .eq('id', editingId);
         
         if (error) throw error;
+        await logActivity(`Updated teacher profile: ${formData.name}`, 'teacher');
         Swal.fire('Updated!', 'Teacher profile updated successfully.', 'success');
       } else {
         const { data: auth, error: authErr } = await supabase.auth.signUp({
@@ -125,7 +127,7 @@ export const Teachers = () => {
         }]);
 
         if (dbErr) throw new Error(`Auth account created, but profile setup failed: ${dbErr.message}`);
-
+        await logActivity(`Onboarded new teacher: ${formData.name}`, 'teacher');
         Swal.fire('Created!', 'Teacher added with default password 123456', 'success');
       }
 
