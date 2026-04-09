@@ -31,7 +31,7 @@ const handleImageSelect = async (event) => {
     }
 
     try {
-      // Compression Options
+     
       const options = {
         maxSizeMB: 0.6,          
         maxWidthOrHeight: 800,   
