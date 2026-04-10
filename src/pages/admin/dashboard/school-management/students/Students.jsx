@@ -95,7 +95,7 @@ export const Students = () => {
       };
 
       if (editingId) {
-        // UPDATE LOGIC
+        
         const { error } = await supabase
           .from('students')
           .update(studentPayload)
