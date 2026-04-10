@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../db';
 import Swal from 'sweetalert2';
+import { logActivity } from '../../../db';
 import { 
   FaUserGraduate, FaPhone, FaWhatsapp, FaSpinner, 
   FaUsers, FaEdit, FaTimes, FaSave, FaEnvelope, 
-  FaMapMarkerAlt, FaGraduationCap, FaCalendarAlt,
+  FaMapMarkerAlt, FaGraduationCap, FaPlus,
   FaChevronRight
 } from 'react-icons/fa';
 
@@ -16,6 +17,15 @@ const MyClass = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newStudentData, setNewStudentData] = useState({
+  name: '',
+  gender: '',
+  dob: '',
+  parent_name: '',
+  phone: '',
+  address: ''
+});
 
   useEffect(() => {
     fetchMyClass();
@@ -52,6 +62,61 @@ const MyClass = () => {
     }
   };
 
+    const handleEnrollStudent = async (e) => {
+  e.preventDefault();
+  setUpdateLoading(true);
+
+  try {
+  
+    const { data: nextId, error: seqErr } = await supabase.rpc('generate_student_id');
+    if (seqErr) throw seqErr;
+
+    const cleanId = nextId.replace(/\//g, '').toLowerCase();
+    const internalEmail = `${cleanId}@school.internal`;
+    const firstName = newStudentData.name.trim().split(' ')[0].toLowerCase();
+    const initialPassword = `${firstName}123`;
+
+   
+    const { data: auth, error: authErr } = await supabase.auth.signUp({
+      email: internalEmail,
+      password: initialPassword,
+    });
+    if (authErr) throw authErr;
+
+
+    const { error: dbErr } = await supabase.from('students').insert([{
+      ...newStudentData,
+      id: auth.user.id,
+      student_id: nextId,
+      email: internalEmail,
+      class_name: teacherProfile.is_class_teacher_of, 
+      enrollment_date: new Date().toISOString().split('T')[0],
+      is_active: true
+    }]);
+
+    if (dbErr) throw dbErr;
+
+  
+    await logActivity(`Teacher ${teacherProfile.name} enrolled new student: ${newStudentData.name}`, 'student');
+
+    Swal.fire('Success!', `Student enrolled with ID: ${nextId}`, 'success');
+    setNewStudentData({
+      name: '',
+      gender: '',
+      dob: '',
+      parent_name: '',
+      phone: '',
+      address: ''
+    });
+    setShowAddModal(false);
+    fetchMyClass(); 
+  } catch (err) {
+    Swal.fire('Enrollment Failed', err.message, 'error');
+  } finally {
+    setUpdateLoading(false);
+  }
+};
+
   const handleUpdateStudent = async (e) => {
     e.preventDefault();
     if (!selectedStudent.name.trim()) {
@@ -71,6 +136,10 @@ const MyClass = () => {
         .eq('id', selectedStudent.id);
 
       if (error) throw error;
+      await logActivity(
+        `Teacher ${teacherProfile.name} updated info for ${selectedStudent.name}`, 
+        'student'
+      );
       
       Swal.fire({
         icon: 'success',
@@ -125,6 +194,12 @@ const MyClass = () => {
               <p className="text-2xl font-bold">{students.length}</p>
               <p className="text-xs font-semibold uppercase tracking-wider">Active Students</p>
             </div>
+            <button
+  onClick={() => setShowAddModal(true)}
+  className="mt-4 md:mt-0 bg-white text-primary px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-all shadow-lg active:scale-95"
+>
+  <FaPlus size={14} /> New Enrollment
+</button>
           </div>
         </div>
       </div>
@@ -255,9 +330,9 @@ const MyClass = () => {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Parent/Guardian Name</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Parent Name</label>
                 <input 
-                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
                   value={selectedStudent?.parent_name || ''}
                   onChange={(e) => setSelectedStudent({...selectedStudent, parent_name: e.target.value})}
                 />
@@ -265,29 +340,101 @@ const MyClass = () => {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Contact Phone</label>
                 <input 
-                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
                   value={selectedStudent?.phone || ''}
                   onChange={(e) => setSelectedStudent({...selectedStudent, phone: e.target.value})}
-                  placeholder="e.g., 08012345678"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Address</label>
-                <textarea 
-                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition resize-none"
-                  value={selectedStudent?.address || ''}
-                  onChange={(e) => setSelectedStudent({...selectedStudent, address: e.target.value})}
-                  rows="2"
-                  placeholder="Home address"
                 />
               </div>
               
               <button 
                 type="submit" 
                 disabled={updateLoading}
-                className="w-full bg-primary hover:bg-primary-dark text-white py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50 mt-4"
+                className="w-full bg-primary text-white py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
               >
-                {updateLoading ? <FaSpinner className="animate-spin" size={18} /> : <><FaSave size={16} /> Save Changes</>}
+                {updateLoading ? <FaSpinner className="animate-spin" /> : <><FaSave /> Save Changes</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Student Modal (Moved outside Edit Modal) */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Enroll New Student</h2>
+                <p className="text-sm text-gray-500 mt-1">Class: <span className="text-primary font-bold">{teacherProfile?.is_class_teacher_of}</span></p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+                <FaTimes size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEnrollStudent} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Full Name</label>
+                <input 
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
+                  placeholder="First and Last Name"
+                  value={newStudentData.name}
+                  onChange={(e) => setNewStudentData({...newStudentData, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Gender</label>
+                <select 
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
+                  value={newStudentData.gender}
+                  onChange={(e) => setNewStudentData({...newStudentData, gender: e.target.value})}
+                >
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Date of Birth</label>
+                <input 
+                  type="date"
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
+                  value={newStudentData.dob}
+                  onChange={(e) => setNewStudentData({...newStudentData, dob: e.target.value})}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Parent Name</label>
+                <input 
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
+                  value={newStudentData.parent_name}
+                  onChange={(e) => setNewStudentData({...newStudentData, parent_name: e.target.value})}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Phone Number</label>
+                <input 
+                  required
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-primary outline-none transition"
+                  value={newStudentData.phone}
+                  onChange={(e) => setNewStudentData({...newStudentData, phone: e.target.value})}
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={updateLoading}
+                className="md:col-span-2 w-full bg-primary hover:bg-primary-dark text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
+              >
+                {updateLoading ? <FaSpinner className="animate-spin" size={18} /> : <><FaPlus size={16} /> Complete Enrollment</>}
               </button>
             </form>
           </div>

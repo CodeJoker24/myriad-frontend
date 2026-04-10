@@ -216,12 +216,21 @@ export const Students = () => {
     }
   };
 
+
   const filteredStudents = students.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          s.student_id?.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    
+ 
+    const matchesSearch = 
+      s.name?.toLowerCase().includes(searchLower) || 
+      s.student_id?.toLowerCase().includes(searchLower) ||
+      s.parent_name?.toLowerCase().includes(searchLower);
+
+    
     const matchesStatus = filterStatus === 'all' || 
-                          (filterStatus === 'active' && s.is_active) || 
-                          (filterStatus === 'inactive' && !s.is_active);
+                         (filterStatus === 'active' && s.is_active) || 
+                         (filterStatus === 'inactive' && !s.is_active);
+
     return matchesSearch && matchesStatus;
   });
 
@@ -265,56 +274,55 @@ export const Students = () => {
         </div>
       </div>
 
-      {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name or ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-          />
-        </div>
-        
-        {/* Mobile Filter Dropdown */}
-        <div className="relative md:hidden">
-          <button
-            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            className="w-full px-4 py-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between text-sm"
-          >
-            <span className="flex items-center gap-2">
-              <FaFilter size={12} />
-              {filterStatus === 'all' ? 'All Status' : filterStatus === 'active' ? 'Active' : 'Inactive'}
-            </span>
-            <FaChevronDown size={10} className={`transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} />
-          </button>
-          {showFilterDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg z-10">
-              {['all', 'active', 'inactive'].map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => { setFilterStatus(opt); setShowFilterDropdown(false); }}
-                  className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl ${filterStatus === opt ? 'text-primary font-semibold bg-blue-50' : 'text-gray-600'}`}
-                >
-                  {opt === 'all' ? 'All Status' : opt === 'active' ? 'Active Only' : 'Inactive Only'}
-                </button>
-              ))}
-            </div>
-          )}
+      
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 group">
+            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
+            <input
+              type="text"
+              placeholder="Search name, Student ID, or Parent..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-12 py-3 bg-white rounded-xl border border-gray-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-sm transition-all shadow-sm"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-500 transition-colors"
+              >
+                <FaTimes size={12} />
+              </button>
+            )}
+          </div>
+          
+          
+          <div className="flex gap-2">
+             <select 
+              className="px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer font-medium text-gray-700 shadow-sm"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active Students</option>
+              <option value="inactive">Suspended</option>
+            </select>
+
+           
+          </div>
         </div>
 
-        {/* Desktop Filter Select */}
-        <select 
-          className="hidden md:block px-4 py-3 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active Only</option>
-          <option value="inactive">Inactive Only</option>
-        </select>
+       
+        {searchTerm && (
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Search Results:
+            </span>
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
+              {filteredStudents.length} {filteredStudents.length === 1 ? 'student' : 'students'} found
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Loading State */}
