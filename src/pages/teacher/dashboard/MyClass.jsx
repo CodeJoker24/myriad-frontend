@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js'; 
 import { supabase } from '../../../db';
 import Swal from 'sweetalert2';
 import { logActivity } from '../../../db';
@@ -80,6 +81,7 @@ const MyClass = () => {
 
     setUpdateLoading(true);
     try {
+      // 1. Generate the unique student ID from your database RPC
       const { data: nextId, error: seqErr } = await supabase.rpc('generate_student_id');
       if (seqErr) throw seqErr;
 
@@ -88,12 +90,30 @@ const MyClass = () => {
       const firstName = newStudentData.name.trim().split(' ')[0].toLowerCase();
       const initialPassword = `${firstName}123`;
 
-      const { data: auth, error: authErr } = await supabase.auth.signUp({
+      const tempSupabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL, 
+        import.meta.env.VITE_SUPABASE_ANON_KEY, 
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        }
+      );
+
+     
+      const { data: auth, error: authErr } = await tempSupabase.auth.signUp({
         email: internalEmail,
         password: initialPassword,
+        options: {
+          data: { role: 'student' }
+        }
       });
+
       if (authErr) throw authErr;
 
+      // 3. Insert student details into the 'students' table using the MAIN client (Teacher's session)
       const { error: dbErr } = await supabase.from('students').insert([{
         ...newStudentData,
         id: auth.user.id,
@@ -106,15 +126,19 @@ const MyClass = () => {
 
       if (dbErr) throw dbErr;
 
+     
       await logActivity(`Teacher ${teacherProfile.name} enrolled new student: ${newStudentData.name}`, 'student');
 
       Swal.fire('Success!', `Student enrolled with ID: ${nextId}`, 'success');
+     
       setNewStudentData({
         name: '', gender: '', dob: '', parent_name: '',
         phone: '', address: '', state_of_origin: '', lga: ''
       });
       setShowAddModal(false);
+
       fetchMyClass(); 
+
     } catch (err) {
       Swal.fire('Enrollment Failed', err.message, 'error');
     } finally {
@@ -139,7 +163,7 @@ const MyClass = () => {
           address: selectedStudent.address,
           state_of_origin: selectedStudent.state_of_origin, 
           lga: selectedStudent.lga,
-          gender: selectedStudent.gender,                  
+          gender: selectedStudent.gender,                   
           dob: selectedStudent.dob
         })
         .eq('id', selectedStudent.id);
@@ -161,7 +185,6 @@ const MyClass = () => {
   };
 
   const toggleExpand = (id) => {
-    
     setExpandedCard(expandedCard === id ? null : id);
   };
 
@@ -215,7 +238,6 @@ const MyClass = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
           {students.map((student) => (
             <div key={student.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300">
-             
               <div className="p-5 cursor-pointer hover:bg-gray-50/50 transition-colors" onClick={() => toggleExpand(student.id)}>
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-primary">
@@ -232,7 +254,6 @@ const MyClass = () => {
                 </div>
               </div>
 
-              {/* Expanded Content - Only shows when this specific card is expanded */}
               {expandedCard === student.id && (
                 <div className="px-5 pb-5 pt-2 border-t border-gray-100 space-y-4">
                   <div className="bg-gray-50 rounded-xl p-4">
@@ -291,7 +312,7 @@ const MyClass = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit Student Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowEditModal(false)}>
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
