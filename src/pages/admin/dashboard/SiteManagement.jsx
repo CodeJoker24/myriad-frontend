@@ -26,7 +26,7 @@ export const SiteManagement = () => {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50/50 -m-6">
       
-      <div className="w-full md:w-72 bg-[#1e293b] text-white p-6 shadow-xl z-20">
+      <div className="w-full md:w-72 bg-[#1e293b] text-white p-6 shadow-xl z-0">
         <div className="mb-10 px-2">
           <h2 className="text-xl font-bold tracking-tight">Site Management</h2>
           <p className="text-slate-400 text-xs mt-1">Landing Page Controller</p>
