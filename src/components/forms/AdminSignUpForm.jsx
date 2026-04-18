@@ -17,6 +17,15 @@
 
       const Signup = async(x)=>{
         x.preventDefault();
+
+          if (!window.navigator.onLine) {
+              return Swal.fire({
+                title: 'No Connection',
+                text: 'Your internet appears to be offline. Please reconnect and try again.',
+                icon: 'warning'
+              });
+            }
+            
         setLoading(true);
 
         if(!name || !email || !password || !confirmPassword || !adminSecret){
