@@ -13,6 +13,7 @@ import {
   FaChartLine,
   FaChevronDown
 } from 'react-icons/fa';
+import { logActivity } from '../../../../../db';
 
 const StatusBtn = ({ active, color, icon, label, onClick }) => {
   const colors = {
@@ -146,6 +147,14 @@ export const Attendance = () => {
 
       if (upsertError) throw upsertError;
 
+      const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
+      const totalCount = attendanceRecords.length;
+      
+      await logActivity(
+        `Updated attendance for ${selectedClass} on ${selectedDate}. (${presentCount}/${totalCount} present)`, 
+        'attendance'
+      );
+      
       Swal.fire({
         icon: 'success',
         title: 'Saved!',
