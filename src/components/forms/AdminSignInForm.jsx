@@ -47,6 +47,7 @@ const AdminSignInForm = () => {
     });
     return;
       }
+      localStorage.setItem("temp_user_id", user.id);
       localStorage.setItem("user", JSON.stringify(response.data.user))
       localStorage.setItem("session", JSON.stringify(response.data.session))
       await logActivity(`${user.email} signed into the admin panel`, 'security');

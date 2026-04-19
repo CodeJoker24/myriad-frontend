@@ -3,15 +3,40 @@ import { supabase } from '../../../../../db';
 import Swal from 'sweetalert2';
 import { 
   FaCalendarCheck, 
-  FaCheckCircle,
   FaUsers,
   FaSpinner,
   FaSearch,
   FaSave,
   FaUserCheck,
   FaUserTimes,
-  FaUserClock
+  FaUserClock,
+  FaChartLine,
+  FaChevronDown
 } from 'react-icons/fa';
+
+const StatusBtn = ({ active, color, icon, label, onClick }) => {
+  const colors = {
+    green: active ? 'bg-emerald-500 text-white shadow-md scale-105' : 'bg-gray-100 text-gray-500 hover:bg-emerald-50 hover:text-emerald-600',
+    red: active ? 'bg-rose-500 text-white shadow-md scale-105' : 'bg-gray-100 text-gray-500 hover:bg-rose-50 hover:text-rose-600',
+    yellow: active ? 'bg-amber-500 text-white shadow-md scale-105' : 'bg-gray-100 text-gray-500 hover:bg-amber-50 hover:text-amber-600'
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all duration-200 flex items-center gap-1.5 ${colors[color]}`}
+    >
+      {icon} {label}
+    </button>
+  );
+};
+
+const StatCard = ({ label, count, color, bgColor }) => (
+  <div className={`${bgColor} rounded-2xl p-4 text-center transition-all hover:scale-105 duration-200`}>
+    <p className={`text-2xl font-black ${color}`}>{count}</p>
+    <p className={`text-[10px] font-bold uppercase tracking-wider ${color}`}>{label}</p>
+  </div>
+);
 
 export const Attendance = () => {
   const [selectedClass, setSelectedClass] = useState('');
@@ -20,6 +45,21 @@ export const Attendance = () => {
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [availableClasses, setAvailableClasses] = useState([]);
+  const [adminId, setAdminId] = useState(null);
+  const [showFilters, setShowFilters] = useState(true);
+
+  useEffect(() => {
+    const identifyUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setAdminId(session.user.id);
+      } else {
+        const backupId = localStorage.getItem('temp_user_id');
+        setAdminId(backupId);
+      }
+    };
+    identifyUser();
+  }, []);
 
   useEffect(() => {
     const fetchAllClasses = async () => {
@@ -28,7 +68,7 @@ export const Attendance = () => {
         .select('class_name')
         .not('class_name', 'is', null);
       
-      if (!error) {
+      if (!error && data) {
         const uniqueClasses = [...new Set(data.map(item => item.class_name))];
         setAvailableClasses(uniqueClasses.sort());
       }
@@ -54,12 +94,7 @@ export const Attendance = () => {
 
       const { data: existingRecords, error: aError } = await supabase
         .from('attendance')
-        .select(`
-          status, 
-          remarks, 
-          student_id,
-          students!inner(class_name)
-        `)
+        .select(`status, remarks, student_id, students!inner(class_name)`)
         .eq('date', selectedDate)
         .eq('students.class_name', selectedClass);
 
@@ -70,7 +105,7 @@ export const Attendance = () => {
         return {
           id: student.id,
           name: student.name,
-          student_id: student.student_id,
+          student_code: student.student_id,
           status: record ? record.status : 'present',
           remarks: record ? record.remarks : ''
         };
@@ -81,6 +116,48 @@ export const Attendance = () => {
       Swal.fire('Error', err.message, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveAttendance = async () => {
+    if (!attendanceRecords.length) return;
+
+    if (!adminId) {
+      return Swal.fire({
+        icon: 'error',
+        title: 'Authentication Error',
+        text: 'Could not find your Admin ID. Please log out and log back in.'
+      });
+    }
+
+    setSaveLoading(true);
+    try {
+      const finalData = attendanceRecords.map(r => ({
+        student_id: r.id,
+        date: selectedDate,
+        status: r.status,
+        remarks: r.remarks || '',
+        recorded_by: adminId 
+      }));
+
+      const { error: upsertError } = await supabase
+        .from('attendance')
+        .upsert(finalData, { onConflict: 'student_id, date' });
+
+      if (upsertError) throw upsertError;
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Saved!',
+        text: 'Attendance updated successfully.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+    } catch (err) {
+      Swal.fire('Save Error', err.message, 'error');
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -96,258 +173,191 @@ export const Attendance = () => {
     setAttendanceRecords(updated);
   };
 
-  const handleSaveAttendance = async () => {
-    setSaveLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const finalData = attendanceRecords.map(r => ({
-        student_id: r.id,
-        date: selectedDate,
-        status: r.status,
-        remarks: r.remarks,
-        recorded_by: user.id
-      }));
-
-      const { error } = await supabase
-        .from('attendance')
-        .upsert(finalData, { onConflict: 'student_id, date' });
-
-      if (error) throw error;
-
-      Swal.fire('Success', `Attendance for ${selectedClass} updated`, 'success');
-    } catch (err) {
-      Swal.fire('Save Failed', err.message, 'error');
-    } finally {
-      setSaveLoading(false);
-    }
+  const counts = {
+    present: attendanceRecords.filter(r => r.status === 'present').length,
+    absent: attendanceRecords.filter(r => r.status === 'absent').length,
+    late: attendanceRecords.filter(r => r.status === 'late').length,
+    total: attendanceRecords.length
   };
-
-  const getStatusCount = () => {
-    const present = attendanceRecords.filter(r => r.status === 'present').length;
-    const absent = attendanceRecords.filter(r => r.status === 'absent').length;
-    const late = attendanceRecords.filter(r => r.status === 'late').length;
-    return { present, absent, late, total: attendanceRecords.length };
-  };
-
-  const counts = getStatusCount();
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-primary mb-1">
-          <FaCalendarCheck className="text-xs" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider">Attendance Management</span>
-        </div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Attendance Control</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage and monitor student attendance records</p>
-      </div>
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
 
-      {/* Filter Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5 mb-5">
-        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-3 md:gap-4">
-          <div>
-            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Select Class</label>
-            <select 
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-            >
-              <option value="">Choose class...</option>
-              {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+              <div className="flex items-center gap-2 text-primary mb-1">
+                <FaCalendarCheck size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Attendance Management</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900">Class Register</h1>
+              <p className="text-xs text-gray-500 mt-1">Mark and manage student attendance</p>
+              <p className="text-[10px] text-gray-400 mt-1">
+            Recorder ID: <span className={adminId ? "text-green-500" : "text-red-500"}>{adminId || "NOT FOUND"}</span>
+          </p>
+            </div>
+            {attendanceRecords.length > 0 && (
+              <div className="hidden md:flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm">
+                <FaChartLine className="text-primary text-sm" />
+                <span className="text-xs font-semibold text-gray-600">{counts.total} Students</span>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Filter Section - Collapsible on Mobile */}
+        <div className="mb-6">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="md:hidden w-full flex items-center justify-between bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-100 mb-3"
+          >
+            <span className="text-sm font-semibold text-gray-700">Filters</span>
+            <FaChevronDown className={`text-gray-400 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
+          </button>
           
-          <div>
-            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Select Date</label>
-            <input 
-              type="date" 
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm" 
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={handleLoadStudents}
-              disabled={loading}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm"
-            >
-              {loading ? <FaSpinner className="animate-spin" size={14} /> : <FaSearch size={14} />}
-              Load Students
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Summary - Mobile Friendly */}
-      {attendanceRecords.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-          <div className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-            <p className="text-xl font-bold text-gray-800">{counts.total}</p>
-            <p className="text-[10px] text-gray-500">Total</p>
-          </div>
-          <div className="bg-green-50 rounded-xl border border-green-100 p-3 text-center">
-            <p className="text-xl font-bold text-green-600">{counts.present}</p>
-            <p className="text-[10px] text-green-600 font-medium">Present</p>
-          </div>
-          <div className="bg-red-50 rounded-xl border border-red-100 p-3 text-center">
-            <p className="text-xl font-bold text-red-600">{counts.absent}</p>
-            <p className="text-[10px] text-red-600 font-medium">Absent</p>
-          </div>
-          <div className="bg-yellow-50 rounded-xl border border-yellow-100 p-3 text-center">
-            <p className="text-xl font-bold text-yellow-600">{counts.late}</p>
-            <p className="text-[10px] text-yellow-600 font-medium">Late</p>
-          </div>
-        </div>
-      )}
-
-      {/* Attendance Table - Mobile Friendly */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {attendanceRecords.length === 0 ? (
-          <div className="py-16 text-center text-gray-400">
-            <FaUsers className="text-4xl mx-auto mb-3 text-gray-200" />
-            <p className="text-sm">No records loaded</p>
-            <p className="text-xs mt-1">Select a class and date to view attendance</p>
-          </div>
-        ) : (
-          <>
-            {/* Mobile Card View */}
-            <div className="md:hidden divide-y divide-gray-100">
-              {attendanceRecords.map((record, index) => (
-                <div key={record.id} className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-semibold text-gray-800">{record.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">{record.student_id}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleStatusChange(index, 'present')}
-                        className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-all ${
-                          record.status === 'present' 
-                            ? 'bg-green-500 text-white' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        P
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(index, 'absent')}
-                        className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-all ${
-                          record.status === 'absent' 
-                            ? 'bg-red-500 text-white' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        A
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(index, 'late')}
-                        className={`px-3 py-1 rounded-lg text-[10px] font-semibold transition-all ${
-                          record.status === 'late' 
-                            ? 'bg-yellow-500 text-white' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        L
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <input 
-                      type="text" 
-                      value={record.remarks}
-                      onChange={(e) => handleRemarkChange(index, e.target.value)}
-                      placeholder="Add note..." 
-                      className="w-full px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-                    />
-                  </div>
+          <div className={`${showFilters ? 'block' : 'hidden md:block'}`}>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Select Class</label>
+                  <select 
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium transition-all"
+                  >
+                    <option value="">— Choose a class —</option>
+                    {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
-              ))}
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Select Date</label>
+                  <input 
+                    type="date" 
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium" 
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={handleLoadStudents}
+                    disabled={loading}
+                    className="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm"
+                  >
+                    {loading ? <FaSpinner className="animate-spin" size={16} /> : <FaSearch size={14} />}
+                    Load Students
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Student</th>
-                    <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Remarks</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {attendanceRecords.map((record, index) => (
-                    <tr key={record.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-gray-800 text-sm">{record.name}</p>
-                        <p className="text-xs text-gray-400 font-mono">{record.student_id}</p>
-                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => handleStatusChange(index, 'present')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
-                              record.status === 'present' 
-                                ? 'bg-green-500 text-white shadow-sm' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
-                          >
-                            <FaUserCheck size={11} /> Present
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(index, 'absent')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
-                              record.status === 'absent' 
-                                ? 'bg-red-500 text-white shadow-sm' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
-                          >
-                            <FaUserTimes size={11} /> Absent
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(index, 'late')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
-                              record.status === 'late' 
-                                ? 'bg-yellow-500 text-white shadow-sm' 
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                            }`}
-                          >
-                            <FaUserClock size={11} /> Late
-                          </button>
-                        </div>
-                       </td>
-                      <td className="px-5 py-3">
-                        <input 
-                          type="text" 
-                          value={record.remarks}
-                          onChange={(e) => handleRemarkChange(index, e.target.value)}
-                          placeholder="Add note..." 
-                          className="w-full px-2 py-1.5 bg-transparent border-b border-gray-200 focus:border-primary outline-none text-sm transition"
-                        />
-                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Save Button */}
-            <div className="px-4 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-              <button 
-                onClick={handleSaveAttendance}
-                disabled={saveLoading}
-                className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all disabled:opacity-50 text-sm"
-              >
-                {saveLoading ? <FaSpinner className="animate-spin" size={14} /> : <FaSave size={14} />}
-                Save Attendance
-              </button>
-            </div>
-          </>
+        {/* Stats Summary */}
+        {attendanceRecords.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <StatCard label="Total" count={counts.total} color="text-gray-700" bgColor="bg-white border border-gray-100" />
+            <StatCard label="Present" count={counts.present} color="text-emerald-600" bgColor="bg-emerald-50 border border-emerald-100" />
+            <StatCard label="Absent" count={counts.absent} color="text-rose-600" bgColor="bg-rose-50 border border-rose-100" />
+            <StatCard label="Late" count={counts.late} color="text-amber-600" bgColor="bg-amber-50 border border-amber-100" />
+          </div>
         )}
+
+        {/* Attendance Table / Cards */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {!attendanceRecords.length ? (
+            <div className="py-20 text-center">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaUsers className="text-3xl text-gray-300" />
+              </div>
+              <p className="text-gray-400 font-medium">Ready to take attendance?</p>
+              <p className="text-xs text-gray-300 mt-1">Select a class and date to begin</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-100">
+                {attendanceRecords.map((record, index) => (
+                  <div key={record.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-bold text-gray-800">{record.name}</p>
+                        <p className="text-[10px] text-gray-400 font-mono mt-0.5">{record.student_code}</p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <StatusBtn active={record.status === 'present'} color="green" icon={<FaUserCheck size={10}/>} label="P" onClick={() => handleStatusChange(index, 'present')} />
+                        <StatusBtn active={record.status === 'absent'} color="red" icon={<FaUserTimes size={10}/>} label="A" onClick={() => handleStatusChange(index, 'absent')} />
+                        <StatusBtn active={record.status === 'late'} color="yellow" icon={<FaUserClock size={10}/>} label="L" onClick={() => handleStatusChange(index, 'late')} />
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <input 
+                        type="text" 
+                        value={record.remarks}
+                        onChange={(e) => handleRemarkChange(index, e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-100 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="Add remarks..."
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">Student</th>
+                      <th className="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">Attendance Status</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {attendanceRecords.map((record, index) => (
+                      <tr key={record.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-800">{record.name}</p>
+                          <p className="text-[11px] text-gray-400 font-mono">{record.student_code}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex justify-center gap-2">
+                            <StatusBtn active={record.status === 'present'} color="green" icon={<FaUserCheck size={10}/>} label="Present" onClick={() => handleStatusChange(index, 'present')} />
+                            <StatusBtn active={record.status === 'absent'} color="red" icon={<FaUserTimes size={10}/>} label="Absent" onClick={() => handleStatusChange(index, 'absent')} />
+                            <StatusBtn active={record.status === 'late'} color="yellow" icon={<FaUserClock size={10}/>} label="Late" onClick={() => handleStatusChange(index, 'late')} />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <input 
+                            type="text" 
+                            value={record.remarks}
+                            onChange={(e) => handleRemarkChange(index, e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-100 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            placeholder="Add remarks..."
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Save Button */}
+              <div className="p-5 bg-gray-50 border-t border-gray-100 flex justify-end">
+                <button 
+                  onClick={handleSaveAttendance}
+                  disabled={saveLoading}
+                  className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
+                >
+                  {saveLoading ? <FaSpinner className="animate-spin" size={16} /> : <FaSave size={14} />}
+                  Save Attendance
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
