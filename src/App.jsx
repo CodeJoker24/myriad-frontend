@@ -10,6 +10,7 @@ import  TeacherProfile  from './pages/teacher/dashboard/TeacherProfile';
 import MyClass from './pages/teacher/dashboard/MyClass';
 import { TeacherChangePassword } from './pages/teacher/dashboard/TeacherChangePassword';
 import { TeacherResetPassword } from './pages/teacher/dashboard/TeacherResetPassword';
+import { TeacherAttendance } from './pages/teacher/dashboard/TeacherAttendance';
 import StudentSignIn from './pages/student/StudentSignIn';
 import StudentDashboard from './pages/student/StudentDashboard';
 import { StudentHome } from './pages/student/dashboard/StudentHome';
@@ -78,6 +79,7 @@ function App() {
           <Route path="my-class" element={<MyClass />} />
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="change-password" element={<TeacherChangePassword />} />
+          <Route path="attendance" element={<TeacherAttendance/>}/>
         </Route>
 
         {/* Student Routes */}
