@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { FaUsers, FaBook, FaSpinner, FaChalkboardTeacher, FaTrophy, FaArrowRight } from 'react-icons/fa';
 import { supabase } from '../../../db';
 
@@ -85,16 +86,16 @@ export const TeacherHome = () => {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       {/* Hero Welcome Section */}
-      <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-primary via-primary to-blue-700 p-6 md:p-8 text-white shadow-xl">
+      <div className="relative mb-8 overflow-hidden rounded-3xl bg-linear-to-r from-primary via-primary to-blue-700 p-6 md:p-8 text-white shadow-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
-            <FaTrophy className="text-yellow-300" />
+         
             <span className="text-xs font-semibold uppercase tracking-wider">Teacher Dashboard</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold">
-            Welcome back, {teacher?.name?.split(' ')[0] || 'Teacher'}! 👋
+            Welcome back, {teacher?.name?.split(' ')[0] || 'Teacher'}!
           </h1>
           <p className="text-white/80 mt-2">Here's an overview of your teaching activities</p>
         </div>
@@ -120,16 +121,20 @@ export const TeacherHome = () => {
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Now with working links */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="px-5 py-4 border-b border-gray-100 bg-linear-to-r from-gray-50 to-white">
           <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
             <FaTrophy className="text-primary" /> Quick Actions
           </h2>
         </div>
         <div className="p-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all group">
+            {/* View Students - Navigates to My Class */}
+            <Link 
+              to="/teacher/dashboard/my-class"
+              className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all group"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                   <FaUsers size={16} />
@@ -137,8 +142,13 @@ export const TeacherHome = () => {
                 <span className="text-sm font-semibold text-gray-700">View Students</span>
               </div>
               <FaArrowRight className="text-blue-500 group-hover:translate-x-1 transition-transform" size={14} />
-            </button>
-            <button className="flex items-center justify-between p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-all group">
+            </Link>
+
+            {/* Upload Results - Navigates to Results */}
+            <Link 
+              to="/teacher/dashboard/results"
+              className="flex items-center justify-between p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-all group"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center text-white">
                   <FaBook size={16} />
@@ -146,16 +156,21 @@ export const TeacherHome = () => {
                 <span className="text-sm font-semibold text-gray-700">Upload Results</span>
               </div>
               <FaArrowRight className="text-purple-500 group-hover:translate-x-1 transition-transform" size={14} />
-            </button>
-            <button className="flex items-center justify-between p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-all group">
+            </Link>
+
+            {/* My Classes - Navigates to Attendance or Classes */}
+            <Link 
+              to="/teacher/dashboard/attendance"
+              className="flex items-center justify-between p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-all group"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white">
                   <FaChalkboardTeacher size={16} />
                 </div>
-                <span className="text-sm font-semibold text-gray-700">My Classes</span>
+                <span className="text-sm font-semibold text-gray-700">Take Attendance</span>
               </div>
               <FaArrowRight className="text-green-500 group-hover:translate-x-1 transition-transform" size={14} />
-            </button>
+            </Link>
           </div>
         </div>
       </div>
