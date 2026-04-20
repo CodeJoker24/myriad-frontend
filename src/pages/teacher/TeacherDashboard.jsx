@@ -69,7 +69,7 @@ const TeacherDashboard = () => {
   const isActive = (path) => location.pathname === path;
 
   const handleLinkClick = () => {
-    // Close sidebar on mobile after clicking a link
+   
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
