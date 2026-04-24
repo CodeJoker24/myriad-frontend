@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../db'; 
-import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock, FaPaperPlane, FaCheckCircle, FaTimesCircle, FaSpinner } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock, FaPaperPlane, FaCheckCircle, FaTimesCircle, FaSpinner, FaWhatsapp } from 'react-icons/fa';
 
 const Contact = () => {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
@@ -38,6 +38,14 @@ const Contact = () => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
+  const sendToWhatsApp = () => {
+    const phoneNumbers = ['08138251375', '08038005822'];
+    const messageText = `*New Contact Form Submission*%0A%0A*Name:* ${formData.name}%0A*Email:* ${formData.email}%0A*Subject:* ${formData.subject}%0A*Message:* ${formData.message}%0A%0A_Submitted via Myriad Academy Website_`;
+    
+
+    window.open(`https://wa.me/${phoneNumbers[0]}?text=${messageText}`, '_blank');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
@@ -45,16 +53,21 @@ const Contact = () => {
       setMessage('Please fill in all fields');
       return;
     }
+    
     setStatus('loading');
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    
+      sendToWhatsApp();
+      
+    
+      
       setStatus('success');
-      setMessage(`Thank you, ${formData.name}! Your message has been received.`);
+      setMessage(`Thank you, ${formData.name}! Your message has been sent via WhatsApp.`);
       setFormData({ name: '', email: '', subject: '', message: '' });
       setTimeout(() => { setStatus('idle'); setMessage(''); }, 5000);
     } catch (error) {
       setStatus('error');
-      setMessage('Something went wrong.');
+      setMessage('Something went wrong. Please try again.');
     }
   };
 
@@ -111,7 +124,7 @@ const Contact = () => {
               key={index}
               className={`group bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:-translate-y-2 relative overflow-hidden`}
             >
-              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${info.color} text-white flex items-center justify-center mb-4 shadow-lg`}>
+              <div className={`w-14 h-14 rounded-xl bg-linear-to-br ${info.color} text-white flex items-center justify-center mb-4 shadow-lg`}>
                 {info.icon}
               </div>
               <h3 className="text-xl font-bold mb-3">{info.title}</h3>
@@ -120,7 +133,7 @@ const Contact = () => {
                   <p key={i} className="text-gray-600 text-sm">{detail}</p>
                 ))}
               </div>
-              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${info.color} scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r ${info.color} scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`} />
             </div>
           ))}
         </div>
@@ -130,6 +143,13 @@ const Contact = () => {
             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
               <FaCheckCircle className="text-green-500 text-xl" />
               <p className="text-green-700">{message}</p>
+            </div>
+          )}
+
+          {status === 'error' && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+              <FaTimesCircle className="text-red-500 text-xl" />
+              <p className="text-red-700">{message}</p>
             </div>
           )}
 
@@ -149,9 +169,10 @@ const Contact = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Subject *</label>
               <select id="subject" value={formData.subject} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none bg-white">
                 <option value="">Select a subject</option>
-                <option value="admissions">Admissions Inquiry</option>
-                <option value="tour">Schedule a Tour</option>
-                <option value="other">Other Inquiry</option>
+                <option value="Admissions Inquiry">Admissions Inquiry</option>
+                <option value="Schedule a Tour">Schedule a Tour</option>
+                <option value="Employment Opportunities">Employment Opportunities</option>
+                <option value="Other Inquiry">Other Inquiry</option>
               </select>
             </div>
 
@@ -160,9 +181,13 @@ const Contact = () => {
               <textarea id="message" value={formData.message} onChange={handleChange} rows="5" className="w-full px-4 py-3 rounded-lg border border-gray-200 outline-none resize-none" placeholder="Type here..." />
             </div>
 
-            <button type="submit" disabled={status === 'loading'} className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg">
-              {status === 'loading' ? <FaSpinner className="animate-spin" /> : <>Send Message <FaPaperPlane /></>}
+            <button type="submit" disabled={status === 'loading'} className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 shadow-lg">
+              {status === 'loading' ? <FaSpinner className="animate-spin" /> : <><FaWhatsapp className="text-xl" /> Send via WhatsApp</>}
             </button>
+            
+            <p className="text-center text-xs text-gray-400 mt-4">
+              Your message will be sent directly to our WhatsApp
+            </p>
           </form>
 
           

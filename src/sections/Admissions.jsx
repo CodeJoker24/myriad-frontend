@@ -39,6 +39,34 @@ const Admissions = () => {
     fetchImportantDates();
   }, []);
 
+  const scrollToContact = () => {
+    const contactSection = document.getElementById('contact');
+    if (contactSection) {
+      const headerOffset = 80;
+      const elementPosition = contactSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollToAdmissions = () => {
+    const admissionsSection = document.getElementById('admissions');
+    if (admissionsSection) {
+      const headerOffset = 80;
+      const elementPosition = admissionsSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   const steps = [
     {
       id: 1,
@@ -136,10 +164,16 @@ const Admissions = () => {
               Start your application today or contact our admissions office for personalized assistance.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all shadow-md">
+              <button 
+                onClick={scrollToContact}
+                className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-all shadow-md"
+              >
                 Apply Now <FaArrowRight className="inline ml-2" />
               </button>
-              <button className="border-2 border-primary text-primary px-8 py-3 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all">
+              <button 
+                onClick={scrollToContact}
+                className="border-2 border-primary text-primary px-8 py-3 rounded-lg font-semibold hover:bg-primary hover:text-white transition-all"
+              >
                 Contact Admissions
               </button>
             </div>
