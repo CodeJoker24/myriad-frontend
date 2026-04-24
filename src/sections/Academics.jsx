@@ -1,4 +1,3 @@
-// src/components/sections/Academics.jsx
 import { Link } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
 import earlyChildhoodImg from '../assets/images/Early Childhood.jpeg';
@@ -6,6 +5,20 @@ import primaryImg from '../assets/images/Primary Education.jpeg';
 import collegeImg from '../assets/images/USCA Academy_ Premier International Private School In Canada.jpeg';
 
 const Academics = () => {
+  const scrollToContact = () => {
+    const contactSection = document.getElementById('contact');
+    if (contactSection) {
+      const headerOffset = 80;
+      const elementPosition = contactSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   const programs = [
     {
       id: 1,
@@ -62,12 +75,12 @@ const Academics = () => {
                   {program.description}
                 </p>
                 
-                <Link
-                  to={`/programs/${program.title.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="inline-flex items-center gap-2 text-primary font-semibold hover:gap-3 transition-all"
+                <button
+                  onClick={scrollToContact}
+                  className="inline-flex items-center gap-2 text-primary font-semibold hover:gap-3 transition-all cursor-pointer"
                 >
                   Learn More <FaArrowRight />
-                </Link>
+                </button>
               </div>
             </div>
           ))}
