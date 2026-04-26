@@ -16,7 +16,7 @@ const Academics = () => {
         top: offsetPosition,
         behavior: 'smooth'
       });
-    }
+    }   
   };
 
   const programs = [
