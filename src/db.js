@@ -17,3 +17,6 @@ export const logActivity = async (text, category) => {
     .from('activity_logs')
     .insert([{ action_text: text, category: category }]);
 };
+
+
+

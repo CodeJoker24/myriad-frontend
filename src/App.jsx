@@ -31,6 +31,8 @@ import { ClassroomManagement } from './pages/admin/dashboard/ClassroomManagement
 import { ResultManagement } from './pages/admin/dashboard/ResultManagement';
 import { ChangePassword } from './pages/admin/dashboard/ChangePassword';
 import { ResetPassword } from './pages/admin/dashboard/ResetPassword';
+import { PromotionManagement } from './pages/admin/dashboard/PromotionManagement';
+import { Settings } from './pages/admin/dashboard/Settings';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import TeacherProtectedRoute from './components/TeacherProtectedRoute';
 import StudentProtectedRoute from './components/StudentProtectedRoute';
@@ -45,6 +47,7 @@ function App() {
         <Route path="/admin/signin" element={<AdminSignIn />} />
         <Route path="/admin/signup" element={<AdminSignUp />} />
         <Route path="/admin/dashboard/reset-password" element={<ResetPassword />} />
+
         
         <Route path="/admin/dashboard" element={
           <ProtectedRoute>
@@ -64,6 +67,8 @@ function App() {
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="classroom" element={<ClassroomManagement />} />
           <Route path="results" element={<ResultManagement />} />
+          <Route path="promotion-management" element={<PromotionManagement />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Teacher Routes */}
