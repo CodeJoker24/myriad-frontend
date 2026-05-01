@@ -15,7 +15,7 @@ const TeacherProtectedRoute = ({ children }) => {
         if (teacher && token && userType === 'teacher') {
           setIsAuthenticated(true);
         } else {
-          // Clear any invalid data
+        
           localStorage.removeItem('teacher');
           localStorage.removeItem('teacherToken');
           localStorage.removeItem('userType');
@@ -33,7 +33,7 @@ const TeacherProtectedRoute = ({ children }) => {
   }, []);
 
   if (isLoading) {
-    // Show loading spinner while checking auth
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

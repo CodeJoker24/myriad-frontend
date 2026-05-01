@@ -20,7 +20,7 @@ export const TeacherAttendance = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+  const [viewMode, setViewMode] = useState('grid'); 
 
   useEffect(() => {
     fetchTeacherAndStudents();
@@ -102,7 +102,7 @@ export const TeacherAttendance = () => {
     updated[index].status = status;
     setFilteredRecords(updated);
     
-    // Also update the main attendanceRecords to keep sync
+   
     const mainIndex = attendanceRecords.findIndex(r => r.id === updated[index].id);
     if (mainIndex !== -1) {
       const mainUpdated = [...attendanceRecords];
@@ -208,7 +208,7 @@ export const TeacherAttendance = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10 shadow-sm">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-0 shadow-sm">
         <div className="p-5">
           <div className="flex flex-col gap-3">
             <div>

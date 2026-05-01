@@ -12,6 +12,7 @@ import {
   FaAddressCard, FaGlobe, FaMapPin
 } from 'react-icons/fa';
 
+
 const MyClass = () => {
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
@@ -37,6 +38,7 @@ const MyClass = () => {
     state_of_origin: '', 
     lga: ''
   });
+  
 
   useEffect(() => {
     const checkMobile = () => {
