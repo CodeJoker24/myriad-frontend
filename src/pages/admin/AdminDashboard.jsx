@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, FaSchool, FaUsers, FaChalkboardTeacher, FaBook, FaClipboardList, FaSignOutAlt, FaChevronDown, FaGlobe, FaLock, FaGraduationCap, FaCog } from 'react-icons/fa';
+import { FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, FaSchool, FaUsers, FaChalkboardTeacher, FaBook, FaClipboardList, FaSignOutAlt, FaChevronDown, FaGlobe, FaLock, FaGraduationCap} from 'react-icons/fa';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
@@ -250,7 +250,7 @@ const AdminDashboard = () => {
                       Change Password
                     </Link>
                     <Link to="/admin/dashboard/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      <FaCog className="inline mr-2" /> Settings
+                      Settings
                     </Link>
                     <hr className="my-2" />
                     <button
