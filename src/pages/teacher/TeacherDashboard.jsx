@@ -4,7 +4,7 @@ import {
   FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, 
   FaUsers, FaBook, FaClipboardList, FaSignOutAlt, 
   FaChevronDown, FaCalendarCheck, FaChartBar,
-  FaTimes, FaUserGraduate, FaLock
+  FaTimes, FaUserGraduate, FaLock, FaGraduationCap
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -57,6 +57,7 @@ const TeacherDashboard = () => {
   const sidebarLinks = [
     { name: 'Dashboard', icon: <FaTachometerAlt />, path: '/teacher/dashboard' },
     { name: 'My Class', icon: <FaUserGraduate />, path: '/teacher/dashboard/my-class' },
+     { name: 'Promotion', icon: <FaGraduationCap />, path: '/teacher/dashboard/promotion' },
     { name: 'My Students', icon: <FaUsers />, path: '/teacher/dashboard/students' },
     { name: 'My Classes', icon: <FaBook />, path: '/teacher/dashboard/classes' },
     { name: 'Attendance', icon: <FaCalendarCheck />, path: '/teacher/dashboard/attendance' },

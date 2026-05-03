@@ -5,7 +5,7 @@ import {
   FaGraduationCap, FaUsers, FaSearch, FaSpinner, FaHistory, 
   FaClock, FaChevronRight, FaUndo, FaCheckCircle, FaFilter,
   FaTimes, FaChevronDown, FaUserGraduate, FaCalendarAlt, FaBookOpen,
-  FaEnvelope, FaHourglassHalf
+  FaEnvelope, FaHourglassHalf, FaTimesCircle, FaArrowRight
 } from 'react-icons/fa';
 
 export const PromotionManagement = () => {
@@ -15,6 +15,7 @@ export const PromotionManagement = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -29,46 +30,46 @@ export const PromotionManagement = () => {
   const [toClass, setToClass] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-useEffect(() => {
-  const init = async () => {
-  
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) setAdminName(user.email.split('@')[0]);
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setAdminName(user.email.split('@')[0]);
 
-   
-    const { data: cls } = await supabase.from('classes').select('name').order('name');
-    if (cls) setClasses(cls.map(c => c.name));
+      const { data: cls } = await supabase.from('classes').select('name').order('name');
+      if (cls) setClasses(cls.map(c => c.name));
 
-   
-    const { data: settingsData } = await supabase.from('academic_settings').select('*');
-    if (settingsData) {
-      
-      const sessionList = settingsData.filter(i => i.type === 'session').map(i => i.value);
-      const termList = settingsData.filter(i => i.type === 'term').map(i => i.value);
-      
-      setSessions(sessionList);
-      setTerms(termList);
+      const { data: settingsData } = await supabase.from('academic_settings').select('*');
+      if (settingsData) {
+        const sessionList = settingsData.filter(i => i.type === 'session').map(i => i.value);
+        const termList = settingsData.filter(i => i.type === 'term').map(i => i.value);
+        
+        setSessions(sessionList);
+        setTerms(termList);
 
-      const currentSess = settingsData.find(i => i.type === 'session' && i.is_current);
-      if (currentSess) setSelectedSession(currentSess.value);
-      
-      const currentTrm = settingsData.find(i => i.type === 'term' && i.is_current);
-      if (currentTrm) setSelectedTerm(currentTrm.value);
-    }
+        const currentSess = settingsData.find(i => i.type === 'session' && i.is_current);
+        if (currentSess) setSelectedSession(currentSess.value);
+        
+        const currentTrm = settingsData.find(i => i.type === 'term' && i.is_current);
+        if (currentTrm) setSelectedTerm(currentTrm.value);
+      }
 
-   
-    fetchHistory();
-  };
-  init();
-}, []);
+      fetchHistory();
+      fetchRequests();
+    };
+    init();
+  }, []);
 
   const fetchHistory = async () => {
     const { data } = await supabase.from('promotion_history').select('*').order('created_at', { ascending: false });
     if (data) setPromotionHistory(data);
   };
 
-  const fetchPromotionRequests = async () => {
-    const { data } = await supabase.from('promotion_requests').select('*').order('created_at', { ascending: false });
+  const fetchRequests = async () => {
+    const { data } = await supabase
+      .from('promotion_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
     if (data) setPromotionRequests(data);
   };
 
@@ -158,39 +159,63 @@ useEffect(() => {
 
   const handleApproveRequest = async (request) => {
     const confirm = await Swal.fire({
-      title: 'Approve Request',
-      text: `Approve promotion for ${request.class_name} to next class?`,
+      title: 'Approve Promotion?',
+      text: `This will move ${request.student_ids.length} students to ${request.requested_class}.`,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'Yes, Approve'
+      confirmButtonText: 'Yes, Approve & Promote'
     });
 
     if (confirm.isConfirmed) {
+      setLoading(true);
       try {
-        const { error } = await supabase.from('students').update({ class_name: request.requested_class }).eq('class_name', request.class_name);
-        if (error) throw error;
+        const { error: upError } = await supabase
+          .from('students')
+          .update({ class_name: request.requested_class })
+          .in('id', request.student_ids);
+        if (upError) throw upError;
+
+        const { data: stdNames } = await supabase.from('students').select('id, name').in('id', request.student_ids);
+        
+        const historyLogs = stdNames.map(s => ({
+          student_id: s.id,
+          student_name: s.name,
+          from_class: request.from_class,
+          to_class: request.requested_class,
+          academic_session: selectedSession,
+          academic_term: selectedTerm,
+          promoted_by: `Admin (via ${request.teacher_name})`
+        }));
+        await supabase.from('promotion_history').insert(historyLogs);
+
         await supabase.from('promotion_requests').update({ status: 'approved' }).eq('id', request.id);
-        Swal.fire('Approved', 'Promotion request approved', 'success');
-        fetchPromotionRequests();
+
+        Swal.fire('Success', 'Students promoted successfully', 'success');
+        fetchRequests();
+        fetchHistory();
       } catch (err) {
         Swal.fire('Error', err.message, 'error');
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const handleRejectRequest = async (request) => {
-    const confirm = await Swal.fire({
+  const handleRejectRequest = async (id) => {
+    const { value: reason } = await Swal.fire({
       title: 'Reject Request',
-      text: `Reject promotion request for ${request.class_name}?`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Reject'
+      input: 'text',
+      inputLabel: 'Reason for rejection',
+      inputPlaceholder: 'e.g. Incomplete scores',
+      showCancelButton: true
     });
 
-    if (confirm.isConfirmed) {
-      await supabase.from('promotion_requests').update({ status: 'rejected' }).eq('id', request.id);
-      Swal.fire('Rejected', 'Promotion request rejected', 'success');
-      fetchPromotionRequests();
+    if (reason) {
+      await supabase.from('promotion_requests')
+        .update({ status: 'rejected', remarks: reason })
+        .eq('id', id);
+      fetchRequests();
+      Swal.fire('Rejected', 'Teacher will see the reason in their history.', 'info');
     }
   };
 
@@ -366,7 +391,6 @@ useEffect(() => {
                 </div>
               ) : (
                 <>
-                  {/* Desktop Table */}
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50 border-b border-gray-100">
@@ -416,7 +440,6 @@ useEffect(() => {
                     </table>
                   </div>
 
-                  {/* Mobile Cards */}
                   <div className="md:hidden divide-y divide-gray-100">
                     {filteredStudents.map((student) => (
                       <div key={student.id} className="p-4">
@@ -446,7 +469,6 @@ useEffect(() => {
                     ))}
                   </div>
 
-                  {/* Footer */}
                   <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 text-right">
                     <p className="text-xs text-gray-500">
                       Showing {filteredStudents.length} of {students.length} students
@@ -460,7 +482,7 @@ useEffect(() => {
 
         {/* PROMOTION REQUESTS TAB */}
         {activeTab === 'requests' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
             <div className="p-4 border-b border-gray-100">
               <div className="relative w-full sm:w-64">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
@@ -472,115 +494,96 @@ useEffect(() => {
               </div>
             </div>
 
-            {promotionRequests.length === 0 ? (
-              <div className="text-center py-16">
-                <FaHourglassHalf className="text-4xl text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No promotion requests</p>
-                <p className="text-sm text-gray-400 mt-1">Requests from teachers will appear here</p>
-              </div>
-            ) : (
-              <>
-                {/* Desktop Table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                      <tr className="text-left text-xs font-semibold text-gray-500 uppercase">
-                        <th className="p-4">Teacher</th>
-                        <th className="p-4">From Class</th>
-                        <th className="p-4">To Class</th>
-                        <th className="p-4">Students</th>
-                        <th className="p-4">Request Date</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {promotionRequests.map((request) => (
-                        <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="p-4 font-medium text-gray-800">{request.teacher_name}</td>
-                          <td className="p-4 text-sm text-gray-600">{request.class_name}</td>
-                          <td className="p-4 text-sm font-medium text-primary">{request.requested_class}</td>
-                          <td className="p-4 text-sm text-gray-500">{request.student_count} students</td>
-                          <td className="p-4 text-sm text-gray-500">{new Date(request.created_at).toLocaleDateString()}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
-                              request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                              request.status === 'approved' ? 'bg-green-100 text-green-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {request.status || 'pending'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            {request.status === 'pending' && (
-                              <div className="flex gap-2 justify-end">
-                                <button
-                                  onClick={() => handleApproveRequest(request)}
-                                  className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-colors"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => handleRejectRequest(request)}
-                                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 transition-colors"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="md:hidden divide-y divide-gray-100">
-                  {promotionRequests.map((request) => (
-                    <div key={request.id} className="p-4">
-                      <div className="mb-3">
-                        <h3 className="font-semibold text-gray-800">{request.teacher_name}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-sm">
-                          <span className="text-gray-500">{request.class_name}</span>
-                          <FaChevronRight className="text-gray-400 text-xs" />
-                          <span className="text-primary font-medium">{request.requested_class}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center mb-3 text-xs text-gray-500">
-                        <span>{request.student_count} students</span>
-                        <span>{new Date(request.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${
-                          request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          request.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {request.status || 'pending'}
-                        </span>
-                        {request.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleApproveRequest(request)}
-                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium"
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                  <tr>
+                    <th className="p-4">Teacher</th>
+                    <th className="p-4">Class Path</th>
+                    <th className="p-4">Qty</th>
+                    <th className="p-4">Date</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {promotionRequests.length === 0 ? (
+                    <tr><td colSpan="5" className="p-10 text-center text-gray-400">No pending requests</td></tr>
+                  ) : (
+                    promotionRequests.map(req => (
+                      <tr key={req.id} className="hover:bg-gray-50">
+                        <td className="p-4 font-medium">{req.teacher_name}</td>
+                        <td className="p-4">
+                          <span className="text-gray-400">{req.from_class}</span>
+                          <FaArrowRight className="inline mx-2 text-[10px] text-gray-300" />
+                          <span className="text-primary font-bold">{req.requested_class}</span>
+                        </td>
+                        <td className="p-4">{req.student_ids.length} Students</td>
+                        <td className="p-4 text-gray-500">{new Date(req.created_at).toLocaleDateString()}</td>
+                        <td className="p-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button 
+                              onClick={() => handleApproveRequest(req)} 
+                              className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" 
+                              title="Approve"
                             >
-                              Approve
+                              <FaCheckCircle />
                             </button>
-                            <button
-                              onClick={() => handleRejectRequest(request)}
-                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium"
+                            <button 
+                              onClick={() => handleRejectRequest(req.id)} 
+                              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" 
+                              title="Reject"
                             >
-                              Reject
+                              <FaTimesCircle />
                             </button>
                           </div>
-                        )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {promotionRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaHourglassHalf className="text-4xl text-gray-300 mx-auto mb-2" />
+                  <p className="text-gray-500">No pending requests</p>
+                </div>
+              ) : (
+                promotionRequests.map(req => (
+                  <div key={req.id} className="p-4">
+                    <div className="mb-2">
+                      <h3 className="font-semibold text-gray-800">{req.teacher_name}</h3>
+                      <div className="flex items-center gap-2 mt-1 text-sm">
+                        <span className="text-gray-500">{req.from_class}</span>
+                        <FaArrowRight className="text-gray-400 text-xs" />
+                        <span className="text-primary font-medium">{req.requested_class}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                    <div className="flex justify-between items-center mb-3 text-xs text-gray-500">
+                      <span>{req.student_ids.length} students</span>
+                      <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        onClick={() => handleApproveRequest(req)} 
+                        className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium"
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        onClick={() => handleRejectRequest(req.id)} 
+                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 
@@ -605,7 +608,6 @@ useEffect(() => {
               </div>
             ) : (
               <>
-                {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-100">
@@ -615,7 +617,7 @@ useEffect(() => {
                         <th className="p-4">Session</th>
                         <th className="p-4">Promoted By</th>
                         <th className="p-4 text-right">Action</th>
-                      </tr>
+                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {promotionHistory.map((record) => (
@@ -643,7 +645,6 @@ useEffect(() => {
                   </table>
                 </div>
 
-                {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-gray-100">
                   {promotionHistory.map((record) => (
                     <div key={record.id} className="p-4">
