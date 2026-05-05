@@ -5,7 +5,7 @@ import {
   FaGraduationCap, FaUsers, FaSearch, FaSpinner, FaHistory, 
   FaClock, FaChevronRight, FaUndo, FaCheckCircle, FaFilter,
   FaTimes, FaChevronDown, FaUserGraduate, FaCalendarAlt, FaBookOpen,
-  FaEnvelope, FaHourglassHalf, FaTimesCircle, FaArrowRight
+  FaHourglassHalf, FaTimesCircle, FaArrowRight, FaEye, FaTrashAlt
 } from 'react-icons/fa';
 
 export const PromotionManagement = () => {
@@ -15,7 +15,6 @@ export const PromotionManagement = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
   
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -160,7 +159,7 @@ export const PromotionManagement = () => {
   const handleApproveRequest = async (request) => {
     const confirm = await Swal.fire({
       title: 'Approve Promotion?',
-      text: `This will move ${request.student_ids.length} students to ${request.requested_class}.`,
+      text: `This will move ${request.student_ids?.length || 0} students to ${request.requested_class}.`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Yes, Approve & Promote'
@@ -238,24 +237,30 @@ export const PromotionManagement = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <FaGraduationCap className="text-primary text-xl" />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                <FaGraduationCap className="text-primary text-2xl" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900">Promotion Management</h1>
+                <p className="text-sm text-gray-500">Manage student promotions across all classes</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Promotion Management</h1>
-              <p className="text-sm text-gray-500">Welcome back, <span className="font-semibold text-primary">{adminName}</span></p>
+            <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-4 py-2 rounded-xl">
+              <FaUserGraduate className="text-primary" />
+              <span>Welcome, <span className="font-semibold text-gray-800">{adminName}</span></span>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-          <div className="flex overflow-x-auto">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-x-auto">
+          <div className="flex">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -277,75 +282,95 @@ export const PromotionManagement = () => {
         {activeTab === 'promote' && (
           <div>
             {/* Filters Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="w-full flex items-center justify-between text-gray-700 md:hidden"
-              >
-                <span className="text-sm font-medium">Filters</span>
-                <FaChevronDown className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-              </button>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+              <div className="flex justify-between items-center mb-4 md:hidden">
+                <h3 className="font-medium text-gray-700">Filters</h3>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-1 text-primary text-sm"
+                >
+                  {showFilters ? 'Hide' : 'Show'} <FaChevronDown className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
 
-              <div className={`${showFilters ? 'block' : 'hidden'} md:block mt-3 md:mt-0`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <select
-                    value={selectedSession}
-                    onChange={(e) => setSelectedSession(e.target.value)}
-                    className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="">Select Session</option>
-                    {sessions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+              <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Academic Session</label>
+                    <select
+                      value={selectedSession}
+                      onChange={(e) => setSelectedSession(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Select Session</option>
+                      {sessions.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
 
-                  <select
-                    value={selectedTerm}
-                    onChange={(e) => setSelectedTerm(e.target.value)}
-                    className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="">Select Term</option>
-                    {terms.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Term</label>
+                    <select
+                      value={selectedTerm}
+                      onChange={(e) => setSelectedTerm(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Select Term</option>
+                      {terms.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
 
-                  <select
-                    value={fromClass}
-                    onChange={(e) => setFromClass(e.target.value)}
-                    className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="">From Class</option>
-                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">From Class</label>
+                    <select
+                      value={fromClass}
+                      onChange={(e) => setFromClass(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Select Class</option>
+                      {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
 
-                  <select
-                    value={toClass}
-                    onChange={(e) => setToClass(e.target.value)}
-                    className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="">To Class</option>
-                    {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">To Class</label>
+                    <select
+                      value={toClass}
+                      onChange={(e) => setToClass(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Select Class</option>
+                      {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
                 </div>
 
-                {(fromClass || toClass || selectedSession) && (
-                  <button
-                    onClick={clearFilters}
-                    className="mt-3 text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
-                  >
-                    <FaTimes size={12} /> Clear all filters
-                  </button>
+                {(fromClass || toClass || selectedSession || selectedTerm) && (
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      onClick={clearFilters}
+                      className="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
+                    >
+                      <FaTimes size={12} /> Clear all filters
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Stats Summary */}
             {fromClass && (
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
-                  <FaUsers className="text-primary text-xl mx-auto mb-2" />
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-white rounded-2xl p-5 text-center shadow-sm border border-gray-100">
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <FaUsers className="text-blue-600 text-xl" />
+                  </div>
                   <p className="text-2xl font-bold text-gray-800">{students.length}</p>
                   <p className="text-xs text-gray-500">Total Students</p>
                 </div>
-                <div className="bg-green-50 rounded-xl p-4 text-center border border-green-100">
-                  <FaCheckCircle className="text-green-600 text-xl mx-auto mb-2" />
+                <div className="bg-green-50 rounded-2xl p-5 text-center border border-green-100">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <FaCheckCircle className="text-green-600 text-xl" />
+                  </div>
                   <p className="text-2xl font-bold text-green-600">{selectedStudentIds.length}</p>
                   <p className="text-xs text-green-600 font-medium">Selected</p>
                 </div>
@@ -353,12 +378,12 @@ export const PromotionManagement = () => {
             )}
 
             {/* Students Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <div className="relative w-full sm:w-64">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="relative w-full sm:w-72">
                   <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                   <input
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 border border-gray-200"
+                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 border border-gray-200"
                     placeholder="Search students..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -367,7 +392,7 @@ export const PromotionManagement = () => {
                 <button
                   onClick={handleProcessPromotion}
                   disabled={loading || !toClass || selectedStudentIds.length === 0}
-                  className="w-full sm:w-auto px-6 py-2 bg-primary text-white rounded-xl text-sm font-medium disabled:opacity-50 transition-all hover:shadow-md flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-medium disabled:opacity-50 transition-all hover:shadow-md flex items-center justify-center gap-2"
                 >
                   {loading ? <FaSpinner className="animate-spin" /> : <FaGraduationCap size={14} />}
                   {loading ? 'Processing...' : `Promote (${selectedStudentIds.length})`}
@@ -376,7 +401,7 @@ export const PromotionManagement = () => {
 
               {!fromClass ? (
                 <div className="text-center py-16">
-                  <FaBookOpen className="text-4xl text-gray-300 mx-auto mb-3" />
+                 <FaBookOpen className="text-5xl text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">Select a class to view students</p>
                 </div>
               ) : loading ? (
@@ -386,11 +411,12 @@ export const PromotionManagement = () => {
                 </div>
               ) : students.length === 0 ? (
                 <div className="text-center py-16">
-                  <FaUsers className="text-4xl text-gray-300 mx-auto mb-3" />
+                  <FaUsers className="text-5xl text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">No students found in {fromClass}</p>
                 </div>
               ) : (
                 <>
+                  {/* Desktop Table */}
                   <div className="hidden md:block overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50 border-b border-gray-100">
@@ -430,8 +456,8 @@ export const PromotionManagement = () => {
                             <td className="p-4 text-sm text-gray-500 font-mono">{student.studentId}</td>
                             <td className="p-4 text-sm text-gray-600">{student.currentClass}</td>
                             <td className="p-4">
-                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-semibold">
-                                Eligible
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-semibold">
+                                <FaCheckCircle size={10} /> Eligible
                               </span>
                             </td>
                           </tr>
@@ -440,14 +466,17 @@ export const PromotionManagement = () => {
                     </table>
                   </div>
 
+                  {/* Mobile Cards */}
                   <div className="md:hidden divide-y divide-gray-100">
                     {filteredStudents.map((student) => (
                       <div key={student.id} className="p-4">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="font-semibold text-gray-800">{student.name}</h3>
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-medium">Eligible</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-medium">
+                                <FaCheckCircle size={8} /> Eligible
+                              </span>
                             </div>
                             <p className="text-xs text-gray-500 font-mono">ID: {student.studentId}</p>
                             <p className="text-xs text-gray-600 mt-1">Class: {student.currentClass}</p>
@@ -469,6 +498,7 @@ export const PromotionManagement = () => {
                     ))}
                   </div>
 
+                  {/* Footer */}
                   <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 text-right">
                     <p className="text-xs text-gray-500">
                       Showing {filteredStudents.length} of {students.length} students
@@ -482,155 +512,189 @@ export const PromotionManagement = () => {
 
         {/* PROMOTION REQUESTS TAB */}
         {activeTab === 'requests' && (
-          <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100">
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-72">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input
                   type="text"
                   placeholder="Search requests..."
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 border border-gray-200"
+                  className="w-full pl-9 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 border border-gray-200"
                 />
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
-                  <tr>
-                    <th className="p-4">Teacher</th>
-                    <th className="p-4">Class Path</th>
-                    <th className="p-4">Qty</th>
-                    <th className="p-4">Date</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {promotionRequests.length === 0 ? (
-                    <tr><td colSpan="5" className="p-10 text-center text-gray-400">No pending requests</td></tr>
-                  ) : (
-                    promotionRequests.map(req => (
-                      <tr key={req.id} className="hover:bg-gray-50">
-                        <td className="p-4 font-medium">{req.teacher_name}</td>
-                        <td className="p-4">
-                          <span className="text-gray-400">{req.from_class}</span>
-                          <FaArrowRight className="inline mx-2 text-[10px] text-gray-300" />
-                          <span className="text-primary font-bold">{req.requested_class}</span>
-                        </td>
-                        <td className="p-4">{req.student_ids.length} Students</td>
-                        <td className="p-4 text-gray-500">{new Date(req.created_at).toLocaleDateString()}</td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button 
-                              onClick={() => handleApproveRequest(req)} 
-                              className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" 
-                              title="Approve"
-                            >
-                              <FaCheckCircle />
-                            </button>
-                            <button 
-                              onClick={() => handleRejectRequest(req.id)} 
-                              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" 
-                              title="Reject"
-                            >
-                              <FaTimesCircle />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-gray-100">
-              {promotionRequests.length === 0 ? (
-                <div className="text-center py-12">
-                  <FaHourglassHalf className="text-4xl text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500">No pending requests</p>
+            {promotionRequests.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaHourglassHalf className="text-4xl text-gray-300" />
                 </div>
-              ) : (
-                promotionRequests.map(req => (
-                  <div key={req.id} className="p-4">
-                    <div className="mb-2">
-                      <h3 className="font-semibold text-gray-800">{req.teacher_name}</h3>
-                      <div className="flex items-center gap-2 mt-1 text-sm">
-                        <span className="text-gray-500">{req.from_class}</span>
-                        <FaArrowRight className="text-gray-400 text-xs" />
-                        <span className="text-primary font-medium">{req.requested_class}</span>
+                <p className="text-gray-500 font-medium">No promotion requests</p>
+                <p className="text-sm text-gray-400 mt-1">Pending requests from teachers will appear here</p>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr className="text-left text-xs font-semibold text-gray-500 uppercase">
+                        <th className="p-4">Teacher</th>
+                        <th className="p-4">Class Path</th>
+                        <th className="p-4">Students</th>
+                        <th className="p-4">Request Date</th>
+                        <th className="p-4 text-center">Status</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {promotionRequests.map((req) => (
+                        <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-4">
+                            <div className="font-medium text-gray-800">{req.teacher_name}</div>
+                            <div className="text-xs text-gray-400">ID: {req.teacher_id?.slice(0, 8)}...</div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">{req.from_class}</span>
+                              <FaArrowRight className="text-gray-400 text-xs" />
+                              <span className="text-sm font-semibold text-primary">{req.requested_class}</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-sm text-gray-600">{req.student_ids?.length || 0} students</span>
+                          </td>
+                          <td className="p-4 text-sm text-gray-500">
+                            {new Date(req.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-semibold">
+                              <FaClock size={10} /> Pending
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button 
+                                onClick={() => handleApproveRequest(req)} 
+                                className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors" 
+                                title="Approve"
+                              >
+                                <FaCheckCircle size={16} />
+                              </button>
+                              <button 
+                                onClick={() => handleRejectRequest(req.id)} 
+                                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" 
+                                title="Reject"
+                              >
+                                <FaTimesCircle size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {promotionRequests.map((req) => (
+                    <div key={req.id} className="p-4">
+                      <div className="mb-3">
+                        <h3 className="font-semibold text-gray-800">{req.teacher_name}</h3>
+                        <div className="flex items-center gap-2 mt-1 text-sm">
+                          <span className="text-gray-500">{req.from_class}</span>
+                          <FaArrowRight className="text-gray-400 text-xs" />
+                          <span className="text-primary font-medium">{req.requested_class}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mb-3 text-xs">
+                        <span className="text-gray-500">{req.student_ids?.length || 0} students</span>
+                        <span className="text-gray-400">{new Date(req.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-semibold">
+                          <FaClock size={10} /> Pending
+                        </span>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleApproveRequest(req)} 
+                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium"
+                          >
+                            Approve
+                          </button>
+                          <button 
+                            onClick={() => handleRejectRequest(req.id)} 
+                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium"
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center mb-3 text-xs text-gray-500">
-                      <span>{req.student_ids.length} students</span>
-                      <span>{new Date(req.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleApproveRequest(req)} 
-                        className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium"
-                      >
-                        Approve
-                      </button>
-                      <button 
-                        onClick={() => handleRejectRequest(req.id)} 
-                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
         {/* HISTORY TAB */}
         {activeTab === 'history' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100">
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-72">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input
                   type="text"
                   placeholder="Search history..."
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 border border-gray-200"
+                  className="w-full pl-9 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 border border-gray-200"
                 />
               </div>
             </div>
 
             {promotionHistory.length === 0 ? (
               <div className="text-center py-16">
-                <FaHistory className="text-4xl text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No promotion history found</p>
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaHistory className="text-4xl text-gray-300" />
+                </div>
+                <p className="text-gray-500 font-medium">No promotion history</p>
+                <p className="text-sm text-gray-400 mt-1">Promoted students will appear here</p>
               </div>
             ) : (
               <>
+                {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr className="text-left text-xs font-semibold text-gray-500 uppercase">
                         <th className="p-4">Student</th>
-                        <th className="p-4">From → To</th>
-                        <th className="p-4">Session</th>
+                        <th className="p-4">Class Progress</th>
+                        <th className="p-4">Session/Term</th>
                         <th className="p-4">Promoted By</th>
-                        <th className="p-4 text-right">Action</th>
-                       </tr>
+                        <th className="p-4 text-center">Action</th>
+                      </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {promotionHistory.map((record) => (
                         <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="p-4 font-medium text-gray-800">{record.student_name}</td>
                           <td className="p-4">
-                            <span className="text-gray-500 text-sm">{record.from_class}</span>
-                            <span className="mx-2 text-gray-400">→</span>
-                            <span className="text-primary font-semibold text-sm">{record.to_class}</span>
+                            <div className="font-medium text-gray-800">{record.student_name}</div>
+                            <div className="text-xs text-gray-400">ID: {record.student_id?.slice(0, 8)}...</div>
                           </td>
-                          <td className="p-4 text-sm text-gray-500">{record.academic_session} • {record.academic_term}</td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500">{record.from_class}</span>
+                              <FaArrowRight className="text-gray-400 text-xs" />
+                              <span className="text-sm font-semibold text-primary">{record.to_class}</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="text-sm text-gray-600">{record.academic_session}</div>
+                            <div className="text-xs text-gray-400">{record.academic_term}</div>
+                          </td>
                           <td className="p-4 text-sm text-gray-500">{record.promoted_by}</td>
-                          <td className="p-4 text-right">
+                          <td className="p-4 text-center">
                             <button
                               onClick={() => handleReverse(record)}
                               className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
@@ -645,11 +709,15 @@ export const PromotionManagement = () => {
                   </table>
                 </div>
 
+                {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-gray-100">
                   {promotionHistory.map((record) => (
                     <div key={record.id} className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-800">{record.student_name}</h3>
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">{record.student_name}</h3>
+                          <p className="text-xs text-gray-500 mt-1">ID: {record.student_id?.slice(0, 8)}...</p>
+                        </div>
                         <button
                           onClick={() => handleReverse(record)}
                           className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg"
@@ -657,12 +725,12 @@ export const PromotionManagement = () => {
                           <FaUndo size={14} />
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm text-gray-500">{record.from_class}</span>
-                        <FaChevronRight className="text-gray-400 text-xs" />
-                        <span className="text-sm font-semibold text-primary">{record.to_class}</span>
+                      <div className="flex items-center gap-2 mb-2 text-sm">
+                        <span className="text-gray-500">{record.from_class}</span>
+                        <FaArrowRight className="text-gray-400 text-xs" />
+                        <span className="text-primary font-semibold">{record.to_class}</span>
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
                         <span>{record.academic_session}</span>
                         <span>•</span>
                         <span>{record.academic_term}</span>
