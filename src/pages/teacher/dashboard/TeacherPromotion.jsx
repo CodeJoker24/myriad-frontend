@@ -10,22 +10,21 @@ export const TeacherPromotion = () => {
   const [activeTab, setActiveTab] = useState('request');
   const [loading, setLoading] = useState(false);
   
-  // Teacher & Class State
+  
   const [teacherData, setTeacherData] = useState(null);
   const [students, setStudents] = useState([]);
   const [history, setHistory] = useState([]);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Fetch Teacher Profile and their Students
+
   useEffect(() => {
     const fetchTeacherAndStudents = async () => {
       setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
-        // Fetch teacher details to find which class they lead
-        // Note: Assumes your teachers table has 'is_class_teacher_of' column
+       
         const { data: teacher } = await supabase
           .from('teachers')
           .select('*')
@@ -35,7 +34,7 @@ export const TeacherPromotion = () => {
         if (teacher) {
           setTeacherData(teacher);
           
-          // Fetch students belonging to this teacher's class
+  
           const { data: stds } = await supabase
             .from('students')
             .select('*')
@@ -44,7 +43,7 @@ export const TeacherPromotion = () => {
           
           if (stds) setStudents(stds);
 
-          // Fetch this teacher's request history
+          
           const { data: hist } = await supabase
             .from('promotion_requests')
             .select('*')
