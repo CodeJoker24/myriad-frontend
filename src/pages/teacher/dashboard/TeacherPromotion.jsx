@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { 
   FaGraduationCap, FaSearch, FaPaperPlane, FaHistory, 
   FaSpinner, FaArrowRight, FaStar, FaClock, FaCheckCircle, FaTimesCircle,
-  FaEye, FaComment, FaChevronDown, FaTrashAlt
+  FaEye, FaComment, FaChevronDown, FaTrashAlt, FaTimes
 } from 'react-icons/fa';
 
 export const TeacherPromotion = () => {
@@ -17,12 +17,25 @@ export const TeacherPromotion = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [showReasonModal, setShowReasonModal] = useState(false);
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [targetClass, setTargetClass] = useState('');
 
   useEffect(() => {
     const fetchTeacherAndStudents = async () => {
       setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        
+        const { data: classesData } = await supabase
+          .from('classes')
+          .select('name')
+          .order('name', { ascending: true });
+      
+        if (classesData) {
+          setAvailableClasses(classesData.map(c => c.name));
+        }
+
         const { data: teacher } = await supabase
           .from('teachers')
           .select('*')
@@ -54,24 +67,21 @@ export const TeacherPromotion = () => {
     fetchTeacherAndStudents();
   }, []);
 
-  const handleSubmitRequest = async () => {
+  const openClassModal = () => {
     if (selectedStudentIds.length === 0) {
       return Swal.fire('Wait!', 'Select students to promote.', 'warning');
     }
+    setTargetClass('');
+    setShowClassModal(true);
+  };
 
-    const { value: targetClass } = await Swal.fire({
-      title: 'Destination Class',
-      input: 'text',
-      inputLabel: 'Which class are they moving to?',
-      placeholder: 'e.g. JSS 2A',
-      showCancelButton: true,
-      inputValidator: (value) => {
-        if (!value) return 'You need to write something!';
-      }
-    });
+  const handleSubmitRequest = async () => {
+    if (!targetClass) {
+      return Swal.fire('Error', 'Please select a target class.', 'error');
+    }
 
-    if (targetClass) {
-      setLoading(true);
+    setLoading(true);
+    try {
       const { error } = await supabase.from('promotion_requests').insert([{
         teacher_id: teacherData.id,
         teacher_name: teacherData.name,
@@ -84,10 +94,15 @@ export const TeacherPromotion = () => {
       if (!error) {
         Swal.fire('Submitted', 'Request sent to Admin for approval.', 'success');
         setSelectedStudentIds([]);
+        setTargetClass('');
+        setShowClassModal(false);
         setActiveTab('history');
         const { data: hist } = await supabase.from('promotion_requests').select('*').eq('teacher_id', teacherData.id);
         setHistory(hist);
       }
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    } finally {
       setLoading(false);
     }
   };
@@ -202,7 +217,7 @@ export const TeacherPromotion = () => {
                   />
                 </div>
                 <button
-                  onClick={handleSubmitRequest}
+                  onClick={openClassModal}
                   disabled={loading || selectedStudentIds.length === 0}
                   className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50"
                 >
@@ -407,6 +422,67 @@ export const TeacherPromotion = () => {
           </div>
         )}
       </div>
+
+      {/* Target Class Selection Modal */}
+      {showClassModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowClassModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-linear-to-r from-primary/5 to-transparent">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Select Destination Class</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedStudentIds.length} student(s) selected for promotion
+                </p>
+              </div>
+              <button onClick={() => setShowClassModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <div className="p-5">
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Current Class</label>
+                <div className="w-full p-3 bg-gray-100 rounded-xl text-gray-700 font-medium">
+                  {teacherData?.is_class_teacher_of || '—'}
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-gray-500 block mb-1">Promote To:</label>
+                <select
+                  value={targetClass}
+                  onChange={(e) => setTargetClass(e.target.value)}
+                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Select Target Class</option>
+                  {availableClasses.map((className) => (
+                    <option key={className} value={className}>
+                      {className}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                <p className="text-xs text-blue-600 flex items-center gap-1">
+                  <FaStar className="text-yellow-500" size={12} />
+                  Note: Students will be moved to the selected class after admin approval
+                </p>
+              </div>
+            </div>
+            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button onClick={() => setShowClassModal(false)} className="px-5 py-2 bg-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-300 transition-colors">
+                Cancel
+              </button>
+              <button 
+                onClick={handleSubmitRequest} 
+                disabled={loading || !targetClass}
+                className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+                {loading ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rejection Reason Modal */}
       {showReasonModal && selectedHistoryItem && (
