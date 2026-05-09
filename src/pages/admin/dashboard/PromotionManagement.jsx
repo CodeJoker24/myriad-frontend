@@ -111,49 +111,60 @@ export const PromotionManagement = () => {
     }
   }, [selectAll, students]);
 
-  const handleProcessPromotion = async () => {
-    if (!toClass || selectedStudentIds.length === 0 || !selectedSession) {
-      return Swal.fire('Missing Info', 'Please select destination class, session, and students.', 'warning');
+ const handleProcessPromotion = async () => {
+  if (!toClass || selectedStudentIds.length === 0 || !selectedSession) {
+    return Swal.fire('Missing Info', 'Please select destination class, session, and students.', 'warning');
+  }
+
+  const confirm = await Swal.fire({
+    title: 'Confirm Promotion',
+    text: `Move ${selectedStudentIds.length} students to ${toClass}?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, Process'
+  });
+
+  if (confirm.isConfirmed) {
+    setLoading(true);
+    try {
+      const { error: upError } = await supabase
+        .from('students')
+        .update({ class_name: toClass })
+        .in('id', selectedStudentIds);
+      
+      if (upError) throw upError;
+
+     
+      const historyData = students.filter(s => selectedStudentIds.includes(s.id)).map(s => ({
+        student_id: s.id,
+        student_name: s.name,
+        from_class: fromClass,
+        to_class: toClass,
+        academic_session: selectedSession,
+        academic_term: selectedTerm,
+        promoted_by: adminName
+      }));
+      await supabase.from('promotion_history').insert(historyData);
+
+      
+      Swal.fire('Success', 'Promotion completed', 'success');
+      
+      
+      setStudents(prev => prev.filter(s => !selectedStudentIds.includes(s.id)));
+      
+      setSelectedStudentIds([]);
+      setSelectAll(false);
+      
+   
+      fetchHistory(); 
+
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    } finally {
+      setLoading(false);
     }
-
-    const confirm = await Swal.fire({
-      title: 'Confirm Promotion',
-      text: `Move ${selectedStudentIds.length} students to ${toClass}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Process'
-    });
-
-    if (confirm.isConfirmed) {
-      setLoading(true);
-      try {
-        const { error: upError } = await supabase.from('students').update({ class_name: toClass }).in('id', selectedStudentIds);
-        if (upError) throw upError;
-
-        const historyData = students.filter(s => selectedStudentIds.includes(s.id)).map(s => ({
-          student_id: s.id,
-          student_name: s.name,
-          from_class: fromClass,
-          to_class: toClass,
-          academic_session: selectedSession,
-          academic_term: selectedTerm,
-          promoted_by: adminName
-        }));
-        await supabase.from('promotion_history').insert(historyData);
-        await logActivity(`Promoted ${selectedStudentIds.length} students to ${toClass}`, 'admin');
-
-        Swal.fire('Success', 'Promotion completed', 'success');
-        setSelectedStudentIds([]);
-        setSelectAll(false);
-        setFromClass('');
-        fetchHistory();
-      } catch (err) {
-        Swal.fire('Error', err.message, 'error');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+  }
+};
 
   const handleReverse = async (record) => {
     const confirm = await Swal.fire({
@@ -285,8 +296,6 @@ export const PromotionManagement = () => {
   if (result.isConfirmed) {
     setLoading(true);
     try {
-      // FIX: Use .not('id', 'is', null) to target all UUID rows 
-      // instead of comparing UUID to the integer 0
       const { error } = await supabase
         .from('promotion_history')
         .delete()
