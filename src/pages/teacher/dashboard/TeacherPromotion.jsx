@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { 
   FaGraduationCap, FaSearch, FaPaperPlane, FaHistory, 
   FaSpinner, FaArrowRight, FaStar, FaClock, FaCheckCircle, FaTimesCircle,
-  FaEye, FaComment, FaChevronDown, FaTrashAlt, FaTimes
+  FaEye, FaComment, FaChevronDown, FaTrashAlt, FaTimes, FaLock
 } from 'react-icons/fa';
 
 export const TeacherPromotion = () => {
@@ -20,6 +20,8 @@ export const TeacherPromotion = () => {
   const [availableClasses, setAvailableClasses] = useState([]);
   const [showClassModal, setShowClassModal] = useState(false);
   const [targetClass, setTargetClass] = useState('');
+  const [isPromotionPeriod, setIsPromotionPeriod] = useState(false);
+  const [activeTermName, setActiveTermName] = useState('');
 
   useEffect(() => {
     const fetchTeacherAndStudents = async () => {
@@ -27,6 +29,21 @@ export const TeacherPromotion = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
+
+        const { data: activeTermData } = await supabase
+          .from('academic_settings')
+          .select('value')
+          .eq('type', 'term')
+          .eq('is_active', true)
+          .single();
+
+        if (activeTermData) {
+          setActiveTermName(activeTermData.value);
+         
+          setIsPromotionPeriod(activeTermData.value.toLowerCase().includes('third'));
+        }
+
+
         const { data: classesData } = await supabase
           .from('classes')
           .select('name')
@@ -42,6 +59,8 @@ export const TeacherPromotion = () => {
           .eq('email', user.email)
           .single();
 
+
+        
         if (teacher) {
           setTeacherData(teacher);
           const { data: stds } = await supabase
@@ -128,7 +147,7 @@ export const TeacherPromotion = () => {
     });
 
     if (result.isConfirmed) {
-      setLoading(true);
+      setLoading(true);setSelectedTerm(activeTerm || '');
       try {
         const { error } = await supabase
           .from('promotion_requests')
@@ -191,6 +210,23 @@ export const TeacherPromotion = () => {
         {activeTab === 'request' && (
           <div>
             {/* Class Info Card */}
+
+            {!isPromotionPeriod && (
+              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-center gap-4 text-orange-700">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
+                  <FaLock className="text-orange-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm">Promotion Requests Locked</p>
+                  <p className="text-xs opacity-80">
+                    Students can only be promoted during the <b>Third Term</b>. 
+                    Current term: <span className="font-semibold">{activeTermName || 'Not Set'}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+
             <div className="bg-linear-to-r from-primary/5 to-blue-50 rounded-xl p-5 mb-6 border border-primary/20">
               <div className="flex justify-between items-center">
                 <div>
@@ -216,12 +252,17 @@ export const TeacherPromotion = () => {
                     onChange={e => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <button
+             <button
                   onClick={openClassModal}
-                  disabled={loading || selectedStudentIds.length === 0}
-                  className="px-6 py-2 bg-primary text-white rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-50"
+                  disabled={loading || selectedStudentIds.length === 0 || !isPromotionPeriod}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                    !isPromotionPeriod 
+                      ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
+                      : 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/20'
+                  }`}
                 >
-                  <FaPaperPlane /> {loading ? 'Sending...' : 'Submit Request'}
+                  {!isPromotionPeriod ? <FaLock /> : <FaPaperPlane />}
+                  {loading ? 'Sending...' : !isPromotionPeriod ? 'Locked (3rd Term Only)' : 'Submit Request'}
                 </button>
               </div>
 

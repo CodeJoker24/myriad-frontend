@@ -135,7 +135,7 @@ export const DashboardHome = () => {
 
   return (
     <div className="space-y-6">
-      {/* Simple Welcome Section - No Gradient */}
+    
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dashboard Overview</h1>
         <p className="text-gray-500 mt-1">Welcome back, Admin</p>
