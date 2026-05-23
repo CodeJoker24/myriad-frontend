@@ -86,6 +86,8 @@ const Header = () => {
               )}
             </li>
 
+           
+            {/* 
             <li className="relative">
               <button
                 onClick={() => setIsSignupDropdownOpen(!isSignupDropdownOpen)}
@@ -108,6 +110,7 @@ const Header = () => {
                 </ul>
               )}
             </li>
+            */}
           </ul>
         </nav>
 
@@ -150,6 +153,8 @@ const Header = () => {
                 </div>
               </li>
 
+             
+              {/*
               <li className="pt-4">
                 <p className="text-sm text-gray-500 mb-2">Sign up as:</p>
                 <div className="flex flex-col gap-2">
@@ -161,6 +166,7 @@ const Header = () => {
                   </Link>
                 </div>
               </li>
+              */}
             </ul>
           </nav>
         </div>
