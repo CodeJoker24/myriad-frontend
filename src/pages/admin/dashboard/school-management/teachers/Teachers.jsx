@@ -6,8 +6,9 @@ import {
   FaPlus, FaTrash, FaSearch, FaTimes, FaSpinner, FaEdit, 
   FaLock, FaUnlock, FaPhone, FaBook, FaUsers, FaChevronRight, 
   FaChalkboardTeacher, FaEnvelope, FaUserGraduate, FaFilter,
-  FaChevronDown, FaEye
+  FaChevronDown, FaEye, FaUpload
 } from 'react-icons/fa';
+import Papa from 'papaparse';
 
 export const Teachers = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -26,6 +27,10 @@ export const Teachers = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingTeacher, setViewingTeacher] = useState(null);
+  
+  // Bulk upload states
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -188,6 +193,106 @@ export const Teachers = () => {
     }
   };
 
+  // Bulk CSV Upload Handlers
+  const downloadSampleCSV = () => {
+    const csvContent = "data:text/csv;charset=utf-8,FullName,Email,Phone\nChinedu Okafor,chinedu@gmail.com,08012345678\nAminat Bello,aminat22@yahoo.com,08187654321";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "teachers_bulk_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleBulkCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!window.navigator.onLine) {
+      return Swal.fire('No Internet', 'Please check your connection before registering accounts.', 'warning');
+    }
+
+    setBulkLoading(true);
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data;
+        setBulkProgress({ current: 0, total: rows.length });
+
+        let successCount = 0;
+        let failureCount = 0;
+        let errorLog = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          setBulkProgress({ current: i + 1, total: rows.length });
+
+          try {
+            const rawName = row.FullName?.trim();
+            const rawEmail = row.Email?.trim().toLowerCase();
+            const rawPhone = row.Phone?.trim() || '';
+
+            if (!rawName) throw new Error("Full Name is missing on this row.");
+            if (!rawEmail) throw new Error("Email is missing on this row.");
+            if (!rawPhone) throw new Error("Phone number is missing.");
+
+            const { data: authData, error: authErr } = await supabase.auth.signUp({
+              email: rawEmail,
+              password: rawPhone,
+            });
+
+            if (authErr) throw authErr;
+
+            const { error: dbErr } = await supabase.from('teachers').insert([{
+              id: authData.user.id,
+              name: rawName,
+              email: rawEmail,
+              phone: rawPhone,
+              subjects: [],
+              classes: [],
+              is_first_login: true,
+              is_active: true
+            }]);
+
+            if (dbErr) throw dbErr;
+
+            await logActivity(`Bulk uploaded teacher: ${rawName} (${rawEmail})`, 'teacher');
+            successCount++;
+
+          } catch (err) {
+            failureCount++;
+            errorLog.push(`Row ${i + 2} (${row.FullName || 'Unknown'}): ${err.message}`);
+          }
+        }
+
+        setBulkLoading(false);
+        e.target.value = null;
+
+        Swal.fire({
+          title: 'Bulk Import Finished',
+          html: `
+            <div class="text-left bg-gray-50 p-4 rounded-xl text-sm space-y-2">
+              <p class="text-green-600"><strong>✅ Successfully Added:</strong> ${successCount} teachers</p>
+              <p class="text-red-600"><strong>❌ Failed Records:</strong> ${failureCount}</p>
+              ${errorLog.length > 0 ? `
+                <div class="mt-3 border-t pt-2 max-h-36 overflow-y-auto text-xs text-red-500 font-mono">
+                  ${errorLog.map(log => `<p>• ${log}</p>`).join('')}
+                </div>
+              ` : ''}
+            </div>
+            <p class="text-[11px] text-gray-400 mt-3 text-center">Note: Imported teachers can log in using their email and phone number as password.</p>
+          `,
+          icon: failureCount === 0 ? 'success' : 'info'
+        });
+
+        fetchTeachers();
+      }
+    });
+  };
+
   const filteredTeachers = teachers.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -209,12 +314,46 @@ export const Teachers = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Staff Registry</h1>
           <p className="text-sm text-gray-500 mt-1">Manage Class Teachers and Subject Specialists</p>
         </div>
-        <button 
-          onClick={() => { setEditingId(null); setFormData({name:'', email:'', phone:'', subjects:[], classes:[], is_class_teacher_of:''}); setShowAddModal(true); }} 
-          className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 w-full sm:w-auto justify-center transition-all shadow-md active:scale-95"
-        >
-          <FaPlus size={14} /> Add Teacher
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          {/* Bulk Upload Section */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadSampleCSV}
+              type="button"
+              className="text-xs text-gray-500 hover:text-primary font-medium underline whitespace-nowrap transition-all"
+            >
+              Download CSV Template
+            </button>
+            
+            <label className={`cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md transition-all text-sm ${bulkLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {bulkLoading ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>Importing ({bulkProgress.current}/{bulkProgress.total})</span>
+                </>
+              ) : (
+                <>
+                  <FaUpload size={14} /> Import CSV
+                </>
+              )}
+              <input 
+                type="file" 
+                accept=".csv" 
+                className="hidden" 
+                onChange={handleBulkCSVUpload} 
+                disabled={bulkLoading} 
+              />
+            </label>
+          </div>
+          
+          {/* Original Add Teacher Button */}
+          <button 
+            onClick={() => { setEditingId(null); setFormData({name:'', email:'', phone:'', subjects:[], classes:[], is_class_teacher_of:''}); setShowAddModal(true); }} 
+            className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 w-full sm:w-auto justify-center transition-all shadow-md active:scale-95"
+          >
+            <FaPlus size={14} /> Add Teacher
+          </button>
+        </div>
       </div>
 
       {/* Stats Summary - Mobile Only */}
