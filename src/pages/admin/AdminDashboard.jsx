@@ -117,10 +117,8 @@ const AdminDashboard = () => {
     { name: 'Dashboard', icon: <FaTachometerAlt />, path: '/admin/dashboard' },
     { name: 'School Management', icon: <FaSchool />, path: '/admin/dashboard/school-management' }, 
     { name: 'Site Management', icon: <FaGlobe />, path: '/admin/dashboard/site-management' },
-    { name: 'My Wards', icon: <FaUsers />, path: '/admin/dashboard/my-wards' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/admin/dashboard/profile' },
     { name: 'Change Password', icon: <FaLock />, path: '/admin/dashboard/change-password' },
-    { name: 'Classroom Management', icon: <FaChalkboardTeacher />, path: '/admin/dashboard/classroom' },
     { name: 'Result Management', icon: <FaClipboardList />, path: '/admin/dashboard/results' },
     { name: 'Promotion Management', icon: <FaGraduationCap />, path: '/admin/dashboard/promotion-management' }
   ];
