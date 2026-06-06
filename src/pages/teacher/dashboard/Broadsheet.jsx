@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../db';
 import { 
-  FaSpinner, FaDownload, FaSchool, FaCalculator, FaHashtag, FaPrint,
-  FaChevronLeft, FaChevronRight, FaSortAmountDown, FaSortAmountUp,
-  FaTable, FaThList, FaEye, FaArrowLeft, FaArrowRight, FaSearch,
-  FaFilter, FaTrophy, FaChartLine, FaUserGraduate, FaBookOpen,
-  FaGraduationCap, FaPercentage, FaDatabase, FaArrowUp, FaArrowDown
+  FaSpinner, FaSchool, FaCalculator, FaPrint, FaSearch, FaFilter,
+  FaChevronLeft, FaChevronRight, FaUserGraduate, FaBookOpen,
+  FaTrophy, FaChartLine, FaPercentage, FaArrowUp, FaArrowDown,
+  FaEye, FaEyeSlash, FaTable, FaThList
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -23,26 +22,18 @@ export const Broadsheet = () => {
   const [scoreTypeView, setScoreTypeView] = useState('total');
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGender, setSelectedGender] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [sortField, setSortField] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
   const [mobileView, setMobileView] = useState(false);
   const [expandedStudent, setExpandedStudent] = useState(null);
-  const [selectedGender, setSelectedGender] = useState('all');
   const [showStats, setShowStats] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
       setMobileView(isMobile);
-      if (isMobile) {
-        setItemsPerPage(5);
-      } else if (window.innerWidth < 1024) {
-        setItemsPerPage(10);
-      } else {
-        setItemsPerPage(15);
-      }
+      setItemsPerPage(isMobile ? 5 : 10);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -92,19 +83,30 @@ export const Broadsheet = () => {
       setActiveSession(currentSession);
       setActiveTerm(currentTerm);
 
-      const parts = targetClass.split(' ');
       let baseClassName = targetClass;
-      if (parts.length > 1) {
-        baseClassName = `${parts[0]} ${parts[1]}`;
+      const classMatch = targetClass.match(/^(basic\s+\d+|jss\s+\d+|ss\s+\d+|jss\d+|ss\d+|creche|nursery\s+\d+|nursery\d+)/i);
+      if (classMatch) {
+        baseClassName = classMatch[0].trim();
+      }
+
+      let secondaryVariant = baseClassName;
+      if (baseClassName.toUpperCase().startsWith('JSS') || baseClassName.toUpperCase().startsWith('SS')) {
+        if (baseClassName.includes(' ')) {
+          secondaryVariant = baseClassName.replace(/\s+/g, '');
+        } else {
+          const letters = baseClassName.match(/[a-zA-Z]+/)[0];
+          const numbers = baseClassName.match(/\d+/)[0];
+          secondaryVariant = `${letters} ${numbers}`;
+        }
       }
 
       const { data: curriculum, error: cError } = await supabase
         .from('school_curriculum')
         .select('subject_name')
-        .or(`class_name.eq."${targetClass}",class_name.eq."${baseClassName}"`);
+        .or(`class_name.ilike."${targetClass}",class_name.ilike."${baseClassName}",class_name.ilike."${secondaryVariant}"`);
 
       if (cError) throw cError;
-      const subjectsArray = (curriculum || []).map(c => c.subject_name);
+      const subjectsArray = [...new Set((curriculum || []).map(c => c.subject_name))];
       setSubjects(subjectsArray);
 
       const { data: roster, error: rError } = await supabase
@@ -157,8 +159,10 @@ export const Broadsheet = () => {
             total: total,
             grade: markRecord.final_grade || '-'
           };
-          cumulativeTotal += total;
-          subjectsCount++;
+          if (markRecord.ca_score !== '' || markRecord.exam_score !== '') {
+            cumulativeTotal += total;
+            subjectsCount++;
+          }
         } else {
           subjectScoresMap[subj] = { ca: '-', exam: '-', total: '-', grade: '-' };
         }
@@ -176,16 +180,21 @@ export const Broadsheet = () => {
     });
 
     const sortedAverages = [...calculatedRows]
+      .filter(r => r.subjectsTakenCount > 0)
       .map(r => r.average)
       .sort((a, b) => b - a);
 
     calculatedRows = calculatedRows.map(row => {
+      if (row.subjectsTakenCount === 0) {
+        return { ...row, position: '-' };
+      }
+      
       const positionIndex = sortedAverages.indexOf(row.average) + 1;
       const suffix = ["th", "st", "nd", "rd"][(positionIndex % 100 > 10 && positionIndex % 100 < 20) ? 0 : Math.min(positionIndex % 10, 3)];
       
       return {
         ...row,
-        position: row.subjectsTakenCount > 0 ? `${positionIndex}${suffix}` : '-'
+        position: `${positionIndex}${suffix}`
       };
     });
 
@@ -215,102 +224,20 @@ export const Broadsheet = () => {
     setSubjectMetrics(metricsMap);
   };
 
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-    setCurrentPage(1);
-  };
-
-  const getSortedData = () => {
-    let filtered = broadsheetData.filter(student => {
-      const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           student.student_id.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
-      return matchesSearch && matchesGender;
-    });
-
-    return filtered.sort((a, b) => {
-      let aVal, bVal;
-      switch(sortField) {
-        case 'name':
-          aVal = a.name;
-          bVal = b.name;
-          break;
-        case 'student_id':
-          aVal = a.student_id;
-          bVal = b.student_id;
-          break;
-        case 'average':
-          aVal = a.average;
-          bVal = b.average;
-          break;
-        case 'grandTotal':
-          aVal = a.grandTotal;
-          bVal = b.grandTotal;
-          break;
-        case 'position':
-          aVal = parseInt(a.position) || 0;
-          bVal = parseInt(b.position) || 0;
-          break;
-        default:
-          aVal = a.name;
-          bVal = b.name;
-      }
-      
-      if (sortDirection === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
-    });
-  };
-
   const triggerPrintWindow = () => {
     window.print();
   };
 
-  const exportToCSV = () => {
-    const sortedData = getSortedData();
-    let csvRows = [];
-    
-    csvRows.push(['S/N', 'Student ID', 'Name', 'Gender', ...subjects.map(s => `${s} (Total)`), 'Grand Total', 'Average (%)', 'Position']);
-    
-    sortedData.forEach((student, idx) => {
-      const row = [
-        idx + 1,
-        student.student_id,
-        student.name,
-        student.gender || '-',
-        ...subjects.map(subj => student.subjectScores[subj]?.total || '-'),
-        student.grandTotal,
-        student.average,
-        student.position
-      ];
-      csvRows.push(row);
-    });
-    
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `broadsheet_${teacherProfile?.is_class_teacher_of}_${activeTerm}_${activeSession}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    Swal.fire('Exported!', 'Broadsheet data has been exported to CSV.', 'success');
-  };
+  const filteredData = broadsheetData.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         student.student_id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGender = selectedGender === 'all' || student.gender === selectedGender;
+    return matchesSearch && matchesGender;
+  });
 
-  const sortedData = getSortedData();
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const stats = {
     totalStudents: broadsheetData.length,
     passedCount: broadsheetData.filter(s => s.average >= 40).length,
@@ -324,8 +251,8 @@ export const Broadsheet = () => {
     return (
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <FaSpinner className="animate-spin text-4xl text-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600 font-medium">Compiling broadsheet data...</p>
+          <FaSpinner className="animate-spin text-4xl text-indigo-600 mx-auto" />
+          <p className="mt-4 text-gray-600 font-medium">Loading broadsheet data...</p>
         </div>
       </div>
     );
@@ -336,47 +263,38 @@ export const Broadsheet = () => {
       <div className="max-w-full mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 pb-24">
         
         <div className="bg-linear-to-r from-slate-900 via-indigo-900 to-slate-900 rounded-2xl shadow-2xl mb-6 overflow-hidden">
-          <div className="relative">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full filter blur-3xl opacity-10"></div>
-            <div className="relative px-5 sm:px-7 py-5 sm:py-6">
-              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="bg-blue-500/20 backdrop-blur-sm p-1.5 rounded-lg">
-                      <FaGraduationCap className="text-blue-400 text-sm" />
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-300">Performance Dashboard</span>
+          <div className="relative px-5 sm:px-7 py-5 sm:py-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-indigo-500/20 backdrop-blur-sm p-1.5 rounded-lg">
+                    <FaSchool className="text-indigo-400 text-sm" />
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Master Broadsheet</h1>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    <div className="bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-lg">
-                      <span className="text-xs font-medium text-white">📚 {teacherProfile?.is_class_teacher_of}</span>
-                    </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-300">Performance Dashboard</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Master Broadsheet</h1>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <div className="bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-lg">
+                    <span className="text-xs font-medium text-white">📚 {teacherProfile?.is_class_teacher_of}</span>
                   </div>
                 </div>
-                
-                <div className="flex flex-wrap gap-3">
-                  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Session</p>
-                    <p className="text-sm font-black text-white">{activeSession || 'Unset'}</p>
-                  </div>
-                  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Term</p>
-                    <p className="text-sm font-black text-blue-400">{activeTerm || 'Unset'}</p>
-                  </div>
-                  <button 
-                    onClick={triggerPrintWindow}
-                    className="bg-white text-slate-900 hover:bg-gray-100 px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-md flex items-center gap-2"
-                  >
-                    <FaPrint /> Print
-                  </button>
-                  <button 
-                    onClick={exportToCSV}
-                    className="bg-green-600 text-white hover:bg-green-700 px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-md flex items-center gap-2"
-                  >
-                    <FaDownload /> Export
-                  </button>
+              </div>
+              
+              <div className="flex flex-wrap gap-3">
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Session</p>
+                  <p className="text-sm font-black text-white">{activeSession || 'Unset'}</p>
                 </div>
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Term</p>
+                  <p className="text-sm font-black text-indigo-400">{activeTerm || 'Unset'}</p>
+                </div>
+                <button 
+                  onClick={triggerPrintWindow}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-md flex items-center gap-2"
+                >
+                  <FaPrint /> Print
+                </button>
               </div>
             </div>
           </div>
@@ -442,7 +360,7 @@ export const Broadsheet = () => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 focus:bg-white transition-all"
                 />
               </div>
               <div className="flex gap-2">
@@ -452,7 +370,7 @@ export const Broadsheet = () => {
                     setSelectedGender(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-white"
+                  className="px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 bg-white"
                 >
                   <option value="all">All Genders</option>
                   <option value="male">Male</option>
@@ -460,7 +378,7 @@ export const Broadsheet = () => {
                 </select>
                 <button
                   onClick={() => setShowStats(!showStats)}
-                  className="px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm hover:border-blue-500 transition whitespace-nowrap"
+                  className="px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm hover:border-indigo-500 transition whitespace-nowrap"
                 >
                   {showStats ? 'Hide Stats' : 'Show Stats'}
                 </button>
@@ -470,19 +388,19 @@ export const Broadsheet = () => {
               <div className="inline-flex rounded-lg p-1 bg-gray-100">
                 <button 
                   onClick={() => setScoreTypeView('total')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${scoreTypeView === 'total' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${scoreTypeView === 'total' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
                 >
-                  Totals Only
+                  <FaTable className="inline mr-1 text-xs" /> Totals
                 </button>
                 <button 
                   onClick={() => setScoreTypeView('split')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${scoreTypeView === 'split' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${scoreTypeView === 'split' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
                 >
-                  Full Details
+                  <FaThList className="inline mr-1 text-xs" /> Detailed
                 </button>
               </div>
               <div className="text-xs text-gray-500">
-                {sortedData.length} students found
+                {filteredData.length} students found
               </div>
             </div>
           </div>
@@ -498,60 +416,33 @@ export const Broadsheet = () => {
 
           {!mobileView ? (
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+              <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '65vh' }}>
                 <table className="w-full border-collapse">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-linear-to-r from-slate-800 to-slate-900 text-white text-xs font-bold uppercase tracking-wider">
-                      <th className="py-3 px-3 text-center w-12 cursor-pointer hover:bg-slate-700" onClick={() => handleSort('')}>
-                        #
-                      </th>
-                      <th className="py-3 px-3 text-left cursor-pointer hover:bg-slate-700" onClick={() => handleSort('student_id')}>
-                        <div className="flex items-center gap-1">
-                          Reg No
-                          {sortField === 'student_id' && (sortDirection === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />)}
-                        </div>
-                      </th>
-                      <th className="py-3 px-4 text-left cursor-pointer hover:bg-slate-700" onClick={() => handleSort('name')}>
-                        <div className="flex items-center gap-1">
-                          Student Name
-                          {sortField === 'name' && (sortDirection === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />)}
-                        </div>
-                      </th>
+                      <th className="py-3 px-3 text-center w-12">#</th>
+                      <th className="py-3 px-3 text-left min-w-25">Reg No</th>
+                      <th className="py-3 px-4 text-left min-w-40]">Student Name</th>
                       <th className="py-3 px-3 text-center w-12">Sex</th>
                       {subjects.map((subj, idx) => (
-                        <th key={idx} colSpan={scoreTypeView === 'split' ? 3 : 1} className="py-3 px-2 text-center min-w-25">
+                        <th key={idx} colSpan={scoreTypeView === 'split' ? 3 : 1} className="py-3 px-2 text-center min-w-20">
                           <div className="text-xs font-bold truncate max-w-25" title={subj}>
-                            {subj.length > 15 ? subj.substring(0, 12) + '...' : subj}
+                            {subj.length > 12 ? subj.substring(0, 10) + '..' : subj}
                           </div>
                         </th>
                       ))}
-                      <th className="py-3 px-3 text-center cursor-pointer hover:bg-slate-700 min-w-20" onClick={() => handleSort('grandTotal')}>
-                        <div className="flex items-center justify-center gap-1">
-                          Total
-                          {sortField === 'grandTotal' && (sortDirection === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />)}
-                        </div>
-                      </th>
-                      <th className="py-3 px-3 text-center cursor-pointer hover:bg-slate-700 min-w-20" onClick={() => handleSort('average')}>
-                        <div className="flex items-center justify-center gap-1">
-                          Avg %
-                          {sortField === 'average' && (sortDirection === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />)}
-                        </div>
-                      </th>
-                      <th className="py-3 px-3 text-center cursor-pointer hover:bg-slate-700 w-16" onClick={() => handleSort('position')}>
-                        <div className="flex items-center justify-center gap-1">
-                          Pos
-                          {sortField === 'position' && (sortDirection === 'asc' ? <FaSortAmountUp /> : <FaSortAmountDown />)}
-                        </div>
-                      </th>
+                      <th className="py-3 px-3 text-center min-w-17.5">Total</th>
+                      <th className="py-3 px-3 text-center min-w-17.5">Avg %</th>
+                      <th className="py-3 px-3 text-center w-16">Pos</th>
                     </tr>
                     {scoreTypeView === 'split' && (
                       <tr className="bg-gray-100 text-gray-600 text-[10px] font-bold">
                         <th colSpan="4"></th>
                         {subjects.map((_, idx) => (
                           <React.Fragment key={idx}>
-                            <th className="p-1 text-center w-12">CA</th>
-                            <th className="p-1 text-center w-12">Exam</th>
-                            <th className="p-1 text-center w-12">Total</th>
+                            <th className="p-1 text-center w-12 bg-blue-50/50">CA</th>
+                            <th className="p-1 text-center w-12 bg-amber-50/50">Exam</th>
+                            <th className="p-1 text-center w-12 bg-gray-200/50">Total</th>
                           </React.Fragment>
                         ))}
                         <th colSpan="3"></th>
@@ -564,7 +455,7 @@ export const Broadsheet = () => {
                       return (
                         <tr key={row.id} className="hover:bg-gray-50 transition-all">
                           <td className="py-2 px-3 text-center text-xs font-semibold text-gray-500">{overallPosition}</td>
-                          <td className="py-2 px-3 font-mono text-xs font-bold text-blue-600">{row.student_id}</td>
+                          <td className="py-2 px-3 font-mono text-xs font-bold text-indigo-600">{row.student_id}</td>
                           <td className="py-2 px-4 font-semibold text-gray-800">{row.name}</td>
                           <td className="py-2 px-3 text-center text-xs font-bold text-gray-500 uppercase">{row.gender?.charAt(0) || '-'}</td>
                           
@@ -573,49 +464,50 @@ export const Broadsheet = () => {
                             if (scoreTypeView === 'split') {
                               return (
                                 <React.Fragment key={sIdx}>
-                                  <td className="p-1 text-center text-xs text-gray-600 bg-blue-50/30">{scoreObj.ca}</td>
-                                  <td className="p-1 text-center text-xs text-gray-600 bg-amber-50/30">{scoreObj.exam}</td>
-                                  <td className={`p-1 text-center text-xs font-bold ${scoreObj.grade === 'F9' ? 'text-red-600 bg-red-50/30' : 'text-gray-800'}`}>
-                                    {scoreObj.total}
+                                  <td className="p-1 text-center text-xs text-gray-600 bg-blue-50/30">{scoreObj?.ca ?? '-'}</td>
+                                  <td className="p-1 text-center text-xs text-gray-600 bg-amber-50/30">{scoreObj?.exam ?? '-'}</td>
+                                  <td className={`p-1 text-center text-xs font-bold ${scoreObj?.grade === 'F9' ? 'text-red-600 bg-red-50/30' : 'text-gray-800'}`}>
+                                    {scoreObj?.total ?? '-'}
                                   </td>
                                 </React.Fragment>
                               );
                             }
                             return (
-                              <td key={sIdx} className={`p-2 text-center text-xs font-bold ${scoreObj.grade === 'F9' ? 'text-red-600' : 'text-gray-800'}`}>
-                                {scoreObj.total}
+                              <td key={sIdx} className={`p-2 text-center text-xs font-bold ${scoreObj?.grade === 'F9' ? 'text-red-600' : 'text-gray-800'}`}>
+                                {scoreObj?.total ?? '-'}
                               </td>
                             );
                           })}
                           
                           <td className="py-2 px-3 text-center font-bold text-gray-800">{row.grandTotal}</td>
-                          <td className="py-2 px-3 text-center font-black text-blue-600">{row.average}%</td>
-                          <td className="py-2 px-3 text-center font-black text-indigo-600">{row.position}</td>
+                          <td className="py-2 px-3 text-center font-black text-indigo-600">{row.average}%</td>
+                          <td className="py-2 px-3 text-center font-black text-indigo-700 bg-indigo-50/50">{row.position}</td>
                         </tr>
                       );
                     })}
+                    
                     {subjects.length > 0 && (
                       <>
                         <tr className="bg-emerald-50 text-emerald-800 text-[11px] font-bold">
-                          <td colSpan="4" className="py-2 px-3 text-right border-t border-emerald-200">Highest</td>
-                          {subjects.map((subj, idx) => (
-                            <td key={idx} colSpan={scoreTypeView === 'split' ? 3 : 1} className="py-2 px-1 text-center font-mono font-black border-t border-emerald-200">
-                              {subjectMetrics[subj]?.highest}
-                            </td>
-                          ))}
-                          <td colSpan="3" className="border-t border-emerald-200"></td>
-                        </tr>
-                        <tr className="bg-rose-50 text-rose-800 text-[11px] font-bold">
-                          <td colSpan="4" className="py-2 px-3 text-right">Lowest</td>
+                          <td colSpan="4" className="py-2 px-3 text-right">Highest →</td>
                           {subjects.map((subj, idx) => (
                             <td key={idx} colSpan={scoreTypeView === 'split' ? 3 : 1} className="py-2 px-1 text-center font-mono font-black">
-                              {subjectMetrics[subj]?.lowest}
+                              {subjectMetrics[subj]?.highest ?? '-'}
+                            </td>
+                          ))}
+                          <td colSpan="3"></td>
+                        </tr>
+                        <tr className="bg-rose-50 text-rose-800 text-[11px] font-bold">
+                          <td colSpan="4" className="py-2 px-3 text-right">Lowest →</td>
+                          {subjects.map((subj, idx) => (
+                            <td key={idx} colSpan={scoreTypeView === 'split' ? 3 : 1} className="py-2 px-1 text-center font-mono font-black">
+                              {subjectMetrics[subj]?.lowest ?? '-'}
                             </td>
                           ))}
                           <td colSpan="3"></td>
                         </tr>
                         <tr className="bg-blue-50 text-blue-800 text-[11px] font-bold">
-                          <td colSpan="4" className="py-2 px-3 text-right">Average</td>
+                          <td colSpan="4" className="py-2 px-3 text-right">Average →</td>
                           {subjects.map((subj, idx) => (
                             <td key={idx} colSpan={scoreTypeView === 'split' ? 3 : 1} className="py-2 px-1 text-center font-mono font-black">
                               {subjectMetrics[subj]?.average !== '-' ? `${subjectMetrics[subj]?.average}` : '-'}
@@ -631,7 +523,7 @@ export const Broadsheet = () => {
 
               <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="text-xs text-gray-600">
-                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} students
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} students
                 </div>
                 <div className="flex gap-2 flex-wrap justify-center">
                   <button
@@ -703,14 +595,14 @@ export const Broadsheet = () => {
                           <span className="font-bold text-gray-800 text-sm">{row.name}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{row.student_id}</span>
+                          <span className="font-mono text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">{row.student_id}</span>
                           <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700">
                             {row.position}
                           </span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-black text-blue-600">{row.average}%</div>
+                        <div className="text-lg font-black text-indigo-600">{row.average}%</div>
                         <div className="text-xs text-gray-500">Total: {row.grandTotal}</div>
                       </div>
                     </div>
@@ -724,41 +616,41 @@ export const Broadsheet = () => {
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Performance</p>
-                            <p className="text-lg font-bold text-blue-600">{row.average}%</p>
+                            <p className="text-lg font-bold text-indigo-600">{row.average}%</p>
                           </div>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {subjects.map((subj, sIdx) => {
                             const scoreObj = row.subjectScores[subj];
-                            const isPass = scoreObj.total !== '-' && parseFloat(scoreObj.total) >= 40;
+                            const isPass = scoreObj?.total !== '-' && parseFloat(scoreObj.total) >= 40;
                             return (
                               <div key={sIdx} className={`border rounded-xl p-3 ${isPass ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
                                 <div className="flex items-center justify-between mb-2">
                                   <span className="font-semibold text-gray-700 text-sm flex items-center gap-1">
-                                    <FaBookOpen className="text-blue-500 text-xs" />
+                                    <FaBookOpen className="text-indigo-500 text-xs" />
                                     {subj}
                                   </span>
                                   <span className={`text-sm font-bold px-2 py-0.5 rounded ${isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                                    {scoreObj.total}
+                                    {scoreObj?.total ?? '-'}
                                   </span>
                                 </div>
                                 {scoreTypeView === 'split' && (
                                   <div className="grid grid-cols-3 gap-2 text-center text-xs">
                                     <div className="p-1.5 bg-white rounded-lg">
                                       <p className="text-gray-500">CA</p>
-                                      <p className="font-bold text-gray-700">{scoreObj.ca}</p>
+                                      <p className="font-bold text-gray-700">{scoreObj?.ca ?? '-'}</p>
                                     </div>
                                     <div className="p-1.5 bg-white rounded-lg">
                                       <p className="text-gray-500">Exam</p>
-                                      <p className="font-bold text-gray-700">{scoreObj.exam}</p>
+                                      <p className="font-bold text-gray-700">{scoreObj?.exam ?? '-'}</p>
                                     </div>
                                     <div className="p-1.5 bg-white rounded-lg">
                                       <p className="text-gray-500">Grade</p>
-                                      <p className={`font-bold ${scoreObj.grade === 'F9' ? 'text-red-600' : 'text-green-600'}`}>{scoreObj.grade}</p>
+                                      <p className={`font-bold ${scoreObj?.grade === 'F9' ? 'text-red-600' : 'text-green-600'}`}>{scoreObj?.grade ?? '-'}</p>
                                     </div>
                                   </div>
                                 )}
-                                {scoreTypeView === 'total' && scoreObj.grade !== '-' && (
+                                {scoreTypeView === 'total' && scoreObj?.grade && scoreObj.grade !== '-' && (
                                   <div className="mt-2 text-center">
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded ${scoreObj.grade === 'F9' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
                                       Grade: {scoreObj.grade}
@@ -777,7 +669,7 @@ export const Broadsheet = () => {
               
               <div className="bg-gray-50 rounded-xl px-4 py-3">
                 <div className="text-xs text-gray-600 text-center mb-3">
-                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} students
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} students
                 </div>
                 <div className="flex justify-center gap-2 flex-wrap">
                   <button
@@ -832,8 +724,8 @@ export const Broadsheet = () => {
               <span className="text-gray-600">F9 (Fail)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <FaDatabase className="text-gray-400 text-xs" />
-              <span className="text-gray-500">Tap on any student to view full details</span>
+              <FaEye className="text-gray-400 text-xs" />
+              <span className="text-gray-500">Tap student card for full details</span>
             </div>
           </div>
         </div>
@@ -845,9 +737,13 @@ export const Broadsheet = () => {
           .no-print { display: none !important; }
           .only-print { display: block !important; }
           .printable-sheet-container { border: none !important; box-shadow: none !important; }
-          table { width: 100% !important; border-collapse: collapse !important; }
-          th, td { border: 1px solid #000 !important; padding: 4px 2px !important; font-size: 8px !important; }
-          th { background-color: #e2e8f0 !important; }
+          table { width: 100% !important; border-collapse: collapse !important; page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          th, td { border: 1px solid #111 !important; padding: 4px 2px !important; font-size: 8px !important; color: #000 !important; }
+          th { background-color: #e2e8f0 !important; color: #000 !important; }
+          .bg-slate-900, .bg-slate-950, .bg-indigo-950, .bg-indigo-600 { background: #f1f5f9 !important; color: #000 !important; }
+          .text-white { color: #000 !important; }
         }
         .only-print { display: none; }
       `}</style>
