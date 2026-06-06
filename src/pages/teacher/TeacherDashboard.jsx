@@ -61,7 +61,7 @@ const TeacherDashboard = () => {
     { name: 'My Students', icon: <FaUsers />, path: '/teacher/dashboard/students' },
     { name: 'My Classes', icon: <FaBook />, path: '/teacher/dashboard/classes' },
     { name: 'Attendance', icon: <FaCalendarCheck />, path: '/teacher/dashboard/attendance' },
-    { name: 'Results', icon: <FaClipboardList />, path: '/teacher/dashboard/results' },
+    { name: 'Results', icon: <FaClipboardList />, path: '/teacher/dashboard/ResultManagement' },
     { name: 'Reports', icon: <FaChartBar />, path: '/teacher/dashboard/reports' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/teacher/dashboard/profile' },
     { name: 'Change Password', icon: <FaLock />, path: '/teacher/dashboard/change-password' },

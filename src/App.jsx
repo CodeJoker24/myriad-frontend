@@ -12,6 +12,7 @@ import { TeacherChangePassword } from './pages/teacher/dashboard/TeacherChangePa
 import { TeacherResetPassword } from './pages/teacher/dashboard/TeacherResetPassword';
 import { TeacherAttendance } from './pages/teacher/dashboard/TeacherAttendance';
 import { TeacherPromotion } from './pages/teacher/dashboard/TeacherPromotion';
+import { Result } from './pages/teacher/dashboard/Result';
 import StudentSignIn from './pages/student/StudentSignIn';
 import StudentDashboard from './pages/student/StudentDashboard';
 import { StudentHome } from './pages/student/dashboard/StudentHome';
@@ -83,6 +84,7 @@ function App() {
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="change-password" element={<TeacherChangePassword />} />
           <Route path="attendance" element={<TeacherAttendance/>}/>
+          <Route path= "ResultManagement" element={<Result/>}/>
         </Route>
 
         {/* Student Routes */}
