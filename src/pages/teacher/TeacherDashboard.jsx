@@ -4,7 +4,7 @@ import {
   FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, 
   FaUsers, FaBook, FaClipboardList, FaSignOutAlt, 
   FaChevronDown, FaCalendarCheck, FaChartBar,
-  FaTimes, FaUserGraduate, FaLock, FaGraduationCap
+  FaTimes, FaUserGraduate, FaLock, FaGraduationCap, FaSchool
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -65,6 +65,8 @@ const TeacherDashboard = () => {
     { name: 'Reports', icon: <FaChartBar />, path: '/teacher/dashboard/reports' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/teacher/dashboard/profile' },
     { name: 'Change Password', icon: <FaLock />, path: '/teacher/dashboard/change-password' },
+    {name: 'BroadSheet', icon:<FaSchool/>, path:'/teacher/dashboard/Broadsheet'}
+
   ];
 
   const isActive = (path) => location.pathname === path;

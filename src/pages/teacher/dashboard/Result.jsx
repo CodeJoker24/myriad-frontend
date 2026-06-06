@@ -3,7 +3,7 @@ import { supabase } from '../../../db';
 import { 
   FaSpinner, FaSave, FaBook, FaSchool, FaCalculator, FaUserGraduate, 
   FaChartLine, FaCheckCircle, FaTimesCircle, FaExclamationTriangle,
-  FaSearch, FaFilter, FaPrint, FaDownload, FaEye, FaEyeSlash
+  FaSearch, FaPrint, FaDownload, FaEye, FaEyeSlash
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { logActivity } from '../../../db';
@@ -87,17 +87,28 @@ export const Result = () => {
       setGradingScales(scales || []);
 
       const teacherClass = teacher.is_class_teacher_of.trim();
-      const parts = teacherClass.split(' ');
       let baseClassName = teacherClass;
       
-      if (parts.length > 1) {
-        baseClassName = `${parts[0]} ${parts[1]}`;
+      const classMatch = teacherClass.match(/^(basic\s+\d+|jss\s+\d+|ss\s+\d+|jss\d+|ss\d+|creche|nursery\s+\d+|nursery\d+)/i);
+      if (classMatch) {
+        baseClassName = classMatch[0].trim();
+      }
+
+      let secondaryVariant = baseClassName;
+      if (baseClassName.toUpperCase().startsWith('JSS') || baseClassName.toUpperCase().startsWith('SS')) {
+        if (baseClassName.includes(' ')) {
+          secondaryVariant = baseClassName.replace(/\s+/g, '');
+        } else {
+          const letters = baseClassName.match(/[a-zA-Z]+/)[0];
+          const numbers = baseClassName.match(/\d+/)[0];
+          secondaryVariant = `${letters} ${numbers}`;
+        }
       }
 
       const { data: curriculum, error: cError } = await supabase
         .from('school_curriculum')
         .select('subject_name, department')
-        .or(`class_name.eq."${teacherClass}",class_name.eq."${baseClassName}"`);
+        .or(`class_name.ilike."${teacherClass}",class_name.ilike."${baseClassName}",class_name.ilike."${secondaryVariant}"`);
 
       if (cError) throw cError;
       setAvailableSubjects(curriculum || []);
@@ -276,10 +287,7 @@ export const Result = () => {
     return (
       <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-blue-200 rounded-full animate-pulse"></div>
-            <FaSpinner className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl text-blue-600 animate-spin" />
-          </div>
+          <FaSpinner className="animate-spin text-4xl text-blue-600 mx-auto" />
           <p className="mt-4 text-gray-600 font-medium">Loading your assessment dashboard...</p>
         </div>
       </div>
@@ -331,7 +339,7 @@ export const Result = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-5 mb-6">
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block  items-center gap-2">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block items-center gap-2">
             <FaBook className="text-blue-500" />
             Select Subject
           </label>
