@@ -29,7 +29,7 @@ import { Teachers } from './pages/admin/dashboard/school-management/teachers/Tea
 import { Attendance } from './pages/admin/dashboard/school-management/attendance/Attendance';
 import { SiteManagement } from './pages/admin/dashboard/SiteManagement';
 import { Profile } from './pages/admin/dashboard/Profile';
-import { ResultManagement } from './pages/admin/dashboard/ResultManagement';
+import { Results } from './pages/admin/dashboard/Results';
 import { ChangePassword } from './pages/admin/dashboard/ChangePassword';
 import { ResetPassword } from './pages/admin/dashboard/ResetPassword';
 import { PromotionManagement } from './pages/admin/dashboard/PromotionManagement';
@@ -65,7 +65,7 @@ function App() {
           <Route path="site-management" element={<SiteManagement />} />
           <Route path="profile" element={<Profile />} />
           <Route path="change-password" element={<ChangePassword />} />
-          <Route path="results" element={<ResultManagement />} />
+          <Route path="Results" element={<Results/>}/>
           <Route path="promotion-management" element={<PromotionManagement />} />
           <Route path="settings" element={<Settings />} />
         </Route>

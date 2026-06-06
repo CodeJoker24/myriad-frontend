@@ -119,7 +119,7 @@ const AdminDashboard = () => {
     { name: 'Site Management', icon: <FaGlobe />, path: '/admin/dashboard/site-management' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/admin/dashboard/profile' },
     { name: 'Change Password', icon: <FaLock />, path: '/admin/dashboard/change-password' },
-    { name: 'Result Management', icon: <FaClipboardList />, path: '/admin/dashboard/results' },
+    { name: 'Results', icon: <FaClipboardList />, path: '/admin/dashboard/Results' },
     { name: 'Promotion Management', icon: <FaGraduationCap />, path: '/admin/dashboard/promotion-management' }
   ];
 
