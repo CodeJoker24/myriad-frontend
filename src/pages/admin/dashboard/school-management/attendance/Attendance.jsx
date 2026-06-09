@@ -97,7 +97,7 @@ export const Attendance = () => {
     }
   };
 
-  const fetchClassAttendance = async () => {
+ const fetchClassAttendance = async () => {
     if (!selectedClass) return;
     setLoadingStudents(true);
     try {
@@ -118,20 +118,32 @@ export const Attendance = () => {
           .from('attendance')
           .select('*')
           .eq('date', selectedDate)
+          .eq('session_context', activeSession)
+          .eq('term_id', activeTerm)
           .in('student_id', studentUuidsInClass);
 
         if (attErr) throw attErr;
         existingRecords = attData || [];
       }
 
+      
       const compiledRecords = roster.map(student => {
         const existing = existingRecords?.find(r => r.student_id === student.id);
+        
+       
+        let dbStatus = existing?.status || 'Present';
+        
+       
+        if (dbStatus.toLowerCase() === 'present') dbStatus = 'Present';
+        if (dbStatus.toLowerCase() === 'absent') dbStatus = 'Absent';
+        if (dbStatus.toLowerCase() === 'late') dbStatus = 'Late';
+
         return {
           id: existing?.id || null,
           db_uuid: student.id,
           display_id: student.student_id,
           name: student.name,
-          status: existing?.status || 'Present',
+          status: dbStatus, 
           remarks: existing?.remarks || ''
         };
       });
@@ -161,57 +173,46 @@ export const Attendance = () => {
     setAttendanceRecords(attendanceRecords.map(r => ({ ...r, status: statusValue })));
   };
 
-  const handleSaveAttendance = async () => {
+ const handleSaveAttendance = async () => {
     if (!selectedClass) return;
     setSaveLoading(true);
 
     try {
-      let successCount = 0;
-
-      const recordsToUpdate = attendanceRecords.filter(r => r.id !== null);
-      const recordsToInsert = attendanceRecords.filter(r => r.id === null);
-
-      if (recordsToUpdate.length > 0) {
-        for (const record of recordsToUpdate) {
-          const { error: upErr } = await supabase
-            .from('attendance')
-            .update({
-              status: record.status,
-              remarks: record.remarks,
-              term_context: activeTerm,
-              session_context: activeSession
-            })
-            .eq('id', record.id);
-            
-          if (upErr) throw upErr;
-        }
-        successCount += recordsToUpdate.length;
-      }
-
-      if (recordsToInsert.length > 0) {
-        const insertPayload = recordsToInsert.map(record => ({
+     
+      const upsertPayload = attendanceRecords.map(record => {
+        const payload = {
           student_id: record.db_uuid,
           date: selectedDate,
           status: record.status,
-          remarks: record.remarks,
-          term_context: activeTerm,       
-          session_context: activeSession  
-        }));
+          remarks: record.remarks || '',
+          term_context: activeTerm,
+          session_context: activeSession,
+          term_id: activeTerm
+        };
 
-        const { error: insErr } = await supabase
-          .from('attendance')
-          .insert(insertPayload);
+      
+        if (record.id) {
+          payload.id = record.id;
+        }
 
-        if (insErr) throw insErr;
-        successCount += recordsToInsert.length;
-      }
+        return payload;
+      });
+
+      if (upsertPayload.length === 0) return;
+
+      
+      const { error: saveErr } = await supabase
+        .from('attendance')
+        .upsert(upsertPayload, { onConflict: 'student_id,date' });
+
+      if (saveErr) throw saveErr;
 
       await logActivity(`Admin recorded attendance for ${selectedClass} on ${selectedDate}`, 'attendance');
 
       Swal.fire({
         icon: 'success',
         title: 'Attendance Saved!',
-        text: `Saved ${successCount} records.`,
+        text: `Successfully processed ${upsertPayload.length} records.`,
         confirmButtonColor: '#3B82F6'
       });
 
@@ -238,7 +239,6 @@ export const Attendance = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header Banner */}
         <div className="mb-6 bg-linear-to-r from-primary to-blue-700 rounded-xl p-5 text-white shadow-md">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -260,7 +260,6 @@ export const Attendance = () => {
           </div>
         </div>
 
-        {/* Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
           <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
             <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Select Class</label>
@@ -308,7 +307,6 @@ export const Attendance = () => {
           )}
         </div>
 
-        {/* Main Table Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {selectedClass && (
             <div className="p-3 bg-gray-50 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -344,7 +342,6 @@ export const Attendance = () => {
               <div className="text-center py-16 text-gray-400 text-sm">No students found</div>
             ) : (
               <>
-                {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b">
@@ -384,7 +381,6 @@ export const Attendance = () => {
                   </table>
                 </div>
 
-                {/* Mobile Cards */}
                 <div className="md:hidden divide-y">
                   {filteredRecords.map((record, idx) => (
                     <div key={record.db_uuid} className="p-4">
@@ -412,7 +408,6 @@ export const Attendance = () => {
                   ))}
                 </div>
 
-                {/* Save Button */}
                 <div className="p-4 bg-gray-50 border-t flex justify-end">
                   <button 
                     onClick={handleSaveAttendance}
