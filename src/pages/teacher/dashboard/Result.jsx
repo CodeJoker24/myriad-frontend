@@ -23,6 +23,7 @@ export const Result = () => {
   const [mobileView, setMobileView] = useState(false);
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [showSummary, setShowSummary] = useState(false);
+  const [isEditableTerm, setIsEditableTerm] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -77,7 +78,13 @@ export const Result = () => {
       }
 
       setActiveSession(activeSessionRow.value);
-      setActiveTerm(activeTermRow.value.split(' (')[0]);
+      
+      const termName = activeTermRow.value.split(' (')[0];
+      setActiveTerm(termName);
+      
+      const termNameLower = termName.toLowerCase();
+      const isThird = termNameLower.includes('3rd') || termNameLower.includes('third');
+      setIsEditableTerm(isThird);
 
       const { data: scales, error: scalesError } = await supabase
         .from('grading_scales')
@@ -294,6 +301,27 @@ export const Result = () => {
     );
   }
 
+  if (!isEditableTerm) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md mx-auto text-center shadow-xl animate-fadeIn">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-100">
+            <FaExclamationTriangle className="text-red-500 text-2xl" />
+          </div>
+          <h3 className="text-base font-bold text-gray-800">Result Entry Ledger Locked</h3>
+          <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+            Score collection sheets are restricted. Direct continuous assessment modifications are only permitted during the final evaluation cycle (<b className="text-red-600">3rd Term</b>).
+          </p>
+          <div className="mt-5 pt-4 border-t border-gray-100 bg-gray-50 -mx-8 -mb-8 p-4 rounded-b-2xl">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
+              System Operational State: Read-Only Mode
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const stats = calculateStatistics();
 
   return (
@@ -481,7 +509,7 @@ export const Result = () => {
                             <span className="font-mono font-bold text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                               {student.student_id}
                             </span>
-                          </td>
+                           </td>
                           <td className="py-3 px-4 font-semibold text-gray-800">{student.name}</td>
                           <td className="py-3 px-4">
                             <input 

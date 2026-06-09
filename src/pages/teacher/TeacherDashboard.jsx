@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
-  FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, 
+  FaBars, FaUserCircle, FaSearch, FaTachometerAlt, 
   FaUsers, FaBook, FaClipboardList, FaSignOutAlt, 
   FaChevronDown, FaCalendarCheck, FaChartBar,
   FaTimes, FaUserGraduate, FaLock, FaGraduationCap, FaSchool
@@ -11,11 +11,10 @@ import Swal from 'sweetalert2';
 const TeacherDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [teacher, setTeacher] = useState(null);
-
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadTeacherData = () => {
     const teacherData = localStorage.getItem('teacher');
@@ -26,7 +25,6 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     loadTeacherData();
-
   
     window.addEventListener("userUpdated", loadTeacherData);
 
@@ -57,22 +55,17 @@ const TeacherDashboard = () => {
   const sidebarLinks = [
     { name: 'Dashboard', icon: <FaTachometerAlt />, path: '/teacher/dashboard' },
     { name: 'My Class', icon: <FaUserGraduate />, path: '/teacher/dashboard/my-class' },
-     { name: 'Promotion', icon: <FaGraduationCap />, path: '/teacher/dashboard/promotion' },
-    { name: 'My Students', icon: <FaUsers />, path: '/teacher/dashboard/students' },
-    { name: 'My Classes', icon: <FaBook />, path: '/teacher/dashboard/classes' },
+    { name: 'Promotion', icon: <FaGraduationCap />, path: '/teacher/dashboard/promotion' },
     { name: 'Attendance', icon: <FaCalendarCheck />, path: '/teacher/dashboard/attendance' },
     { name: 'Results', icon: <FaClipboardList />, path: '/teacher/dashboard/ResultManagement' },
-    { name: 'Reports', icon: <FaChartBar />, path: '/teacher/dashboard/reports' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/teacher/dashboard/profile' },
     { name: 'Change Password', icon: <FaLock />, path: '/teacher/dashboard/change-password' },
-    {name: 'BroadSheet', icon:<FaSchool/>, path:'/teacher/dashboard/Broadsheet'}
-
+    { name: 'BroadSheet', icon: <FaSchool />, path: '/teacher/dashboard/Broadsheet' }
   ];
 
   const isActive = (path) => location.pathname === path;
 
   const handleLinkClick = () => {
-   
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
@@ -125,97 +118,110 @@ const TeacherDashboard = () => {
       {/* Main Content */}
       <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'ml-0'}`}>
         {/* Topbar */}
-        <header className="h-20 bg-white shadow-sm fixed top-0 right-0 left-0 z-10">
-          <div className="h-full px-6 flex items-center justify-between">
+        <header className="h-20 bg-white shadow-sm fixed top-0 right-0 left-0 z-10 border-b border-gray-100">
+          <div className="h-full px-4 sm:px-6 flex items-center justify-between gap-3">
             {!sidebarOpen && (
               <button 
                 onClick={() => setSidebarOpen(true)} 
-                className="p-2 hover:bg-gray-100 rounded-xl text-gray-600"
+                className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 shrink-0"
               >
                 <FaBars size={20} />
               </button>
             )}
 
-            <div className="flex-1 max-w-md mx-4 hidden sm:block">
+            {/* Search Bar - Visible on both desktop and mobile */}
+            <div className="flex-1 max-w-md relative">
               <div className="relative">
-                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input 
                   type="text" 
-                  placeholder="Search..." 
-                  className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50 focus:bg-white" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search pages... (Results, Broadsheet, etc.)" 
+                  className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50 focus:bg-white text-sm" 
                 />
               </div>
+
+              {/* Instant Dropdown results */}
+              {searchQuery && (
+                <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 py-1">
+                  <div className="px-4 py-1.5 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    Matching Shortcuts
+                  </div>
+                  {sidebarLinks.filter(link => 
+                    link.name.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length > 0 ? (
+                    sidebarLinks
+                      .filter(link => link.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((link, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            navigate(link.path);
+                            setSearchQuery('');
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors text-left cursor-pointer font-medium"
+                        >
+                          <span className="text-gray-400 group-hover:text-white">{link.icon}</span>
+                          <span>{link.name}</span>
+                        </button>
+                      ))
+                  ) : (
+                    <p className="text-sm text-gray-400 py-3 text-center font-medium">No menu pages match "{searchQuery}"</p>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-4 ml-auto">
-              {/* Notifications */}
-              <div className="relative">
-                <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 hover:bg-gray-100 rounded-xl">
-                  <FaBell className="text-gray-600 text-xl" />
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
-                </button>
-                {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <div className="px-5 py-3 border-b border-gray-100">
-                      <h3 className="font-semibold text-gray-800">Notifications</h3>
+            {/* User Menu */}
+            <div className="relative shrink-0">
+              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 sm:gap-3 hover:bg-gray-100 rounded-xl p-1.5 transition-colors">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center bg-primary/10">
+                  {teacher?.profile_image ? (
+                    <img 
+                      src={teacher.profile_image} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "https://ui-avatars.com/api/?name=" + (teacher?.name || "Teacher") + "&background=random";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-primary bg-primary/10 text-base sm:text-lg font-bold">
+                      {teacher?.name?.charAt(0) || <FaUserCircle />}
                     </div>
-                    <div className="max-h-96 overflow-y-auto p-4">
-                      <p className="text-sm text-gray-500">No new notifications</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-bold text-gray-800 leading-tight">{teacher?.name || 'Teacher'}</p>
+                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Teacher Account</p>
+                </div>
+                <FaChevronDown className={`text-[10px] text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
 
-              {/* User Menu & Profile Image Replacement */}
-              <div className="relative">
-                <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 hover:bg-gray-100 rounded-xl p-1.5 transition-colors">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm flex items-center justify-center bg-primary/10">
-                    {teacher?.profile_image ? (
-                      <img 
-                        src={teacher.profile_image} 
-                        alt="Avatar" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                           e.target.src = "https://ui-avatars.com/api/?name=" + (teacher?.name || "Teacher") + "&background=random";
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-primary bg-primary/10 text-lg font-bold">
-                        {teacher?.name?.charAt(0) || <FaUserCircle />}
-                      </div>
-                    )}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
+                  <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate">{teacher?.email}</p>
                   </div>
-                  <div className="hidden md:block text-left">
-                    <p className="text-sm font-bold text-gray-800 leading-tight">{teacher?.name || 'Teacher'}</p>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Teacher Account</p>
-                  </div>
-                  <FaChevronDown className={`text-[10px] text-gray-400 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
-                    <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
-                        <p className="text-sm font-semibold text-gray-800 truncate">{teacher?.email}</p>
-                    </div>
-                    <Link to="/teacher/dashboard/profile" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
-                      My Profile
-                    </Link>
-                    <Link to="/teacher/dashboard/change-password" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
-                     Change Password
-                    </Link>
-                    <hr className="my-1 border-gray-100" />
-                    <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-semibold">
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
+                  <Link to="/teacher/dashboard/profile" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
+                    My Profile
+                  </Link>
+                  <Link to="/teacher/dashboard/change-password" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
+                    Change Password
+                  </Link>
+                  <hr className="my-1 border-gray-100" />
+                  <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-semibold cursor-pointer">
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        <main className="pt-24 pb-8 px-6 min-h-screen">
+        <main className="pt-24 pb-8 px-4 sm:px-6 min-h-screen">
           <Outlet />
         </main>
       </div>
