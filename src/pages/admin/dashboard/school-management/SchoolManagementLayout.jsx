@@ -63,9 +63,7 @@ export const SchoolManagementLayout = () => {
             <h2 className={`font-semibold text-gray-800 ${!nestedSidebarOpen && 'lg:hidden'}`}>
               School Management
             </h2>
-            <h2 className={`font-semibold text-gray-800 hidden ${nestedSidebarOpen && 'lg:block'}`}>
-              School Management
-            </h2>
+          
             <button
               onClick={() => setNestedSidebarOpen(!nestedSidebarOpen)}
               className="hidden lg:block p-2 hover:bg-gray-100 rounded-lg text-gray-500"
