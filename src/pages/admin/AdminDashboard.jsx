@@ -44,7 +44,7 @@ const AdminDashboard = () => {
     };
   }, []);
 
-  // Close notification dropdown when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (showNotifications && 
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
     setSidebarOpen(false);
   };
 
-  // Check if mobile view
+ 
   const isMobile = () => window.innerWidth < 768;
 
   return (
