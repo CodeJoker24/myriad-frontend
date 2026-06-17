@@ -8,4 +8,4 @@ const AdminSignUp = () => {
   );
 };
 
-export default AdminSignUp;
+export default AdminSignUp; 
