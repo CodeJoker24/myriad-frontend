@@ -55,7 +55,11 @@ export const TeacherAttendance = () => {
           const currentTermRow = data.find(item => item.type === 'term');
           
           if (currentSessionRow) setActiveSession(currentSessionRow.value);
-          if (currentTermRow) setActiveTerm(currentTermRow.value);
+          if (currentTermRow) {
+            // Clean term text just like Result.jsx (e.g., "First Term (2024)" -> "First Term")
+            const termName = currentTermRow.value.split(' (')[0];
+            setActiveTerm(termName);
+          }
         }
       } catch (err) {
         console.error("Context fetch error:", err.message);
@@ -91,6 +95,7 @@ export const TeacherAttendance = () => {
     setFilteredRecords(filtered);
   };
 
+  // 🌟 FIXED FETCH ENGINE (Matches exactly with column layouts)
   const fetchTeacherAndStudents = async () => {
     try {
       setLoading(true);
@@ -115,17 +120,21 @@ export const TeacherAttendance = () => {
 
         if (sError) throw sError;
 
-        const { data: existingAttendance } = await supabase
+        // 🌟 FIX: Querying 'term_context' instead of 'term_id' to read historical rows correctly!
+        const { data: existingAttendance, error: attError } = await supabase
           .from('attendance')
           .select('*')
           .eq('date', selectedDate)
           .eq('session_context', activeSession)
-          .eq('term_id', activeTerm);
+          .eq('term_context', activeTerm);
+
+        if (attError) throw attError;
 
         const merged = studentData.map(student => {
           const record = existingAttendance?.find(a => a.student_id === student.id);
           let dbStatus = record ? record.status : 'Present';
           
+          // Normalize matching string formatting
           if (dbStatus.toLowerCase() === 'present') dbStatus = 'Present';
           if (dbStatus.toLowerCase() === 'absent') dbStatus = 'Absent';
           
@@ -177,6 +186,7 @@ export const TeacherAttendance = () => {
     });
   };
 
+  // 🌟 FIXED SAVE ENGINE (Ensures complete context aligns tracking properties)
   const saveAttendance = async () => {
     if (!teacherProfile?.is_class_teacher_of) return;
     setSaveLoading(true);
@@ -189,7 +199,7 @@ export const TeacherAttendance = () => {
         recorded_by: user.id,
         term_context: activeTerm,
         session_context: activeSession,
-        term_id: activeTerm
+        term_id: activeTerm // Keeping this field populated to protect any legacy DB constraints
       }));
 
       const { error } = await supabase
