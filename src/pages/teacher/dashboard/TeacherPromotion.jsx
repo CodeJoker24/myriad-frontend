@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { 
   FaGraduationCap, FaSearch, FaPaperPlane, FaHistory, 
   FaSpinner, FaArrowRight, FaStar, FaClock, FaCheckCircle, FaTimesCircle,
-  FaEye, FaComment, FaChevronDown, FaTrashAlt, FaTimes, FaLock
+  FaEye, FaComment, FaChevronDown, FaTrashAlt, FaTimes, FaLock, FaUserCheck, FaExclamationTriangle
 } from 'react-icons/fa';
 
 export const TeacherPromotion = () => {
@@ -22,28 +22,39 @@ export const TeacherPromotion = () => {
   const [targetClass, setTargetClass] = useState('');
   const [isPromotionPeriod, setIsPromotionPeriod] = useState(false);
   const [activeTermName, setActiveTermName] = useState('');
+  const [activeSessionName, setActiveSessionName] = useState('');
 
   useEffect(() => {
     const fetchTeacherAndStudents = async () => {
       setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
 
-        const { data: activeTermData } = await supabase
+        // 1. Fetch active term and session parameters
+        const { data: settingsData } = await supabase
           .from('academic_settings')
-          .select('value')
-          .eq('type', 'term')
-          .eq('is_active', true)
-          .single();
+          .select('*')
+          .eq('is_active', true);
 
-        if (activeTermData) {
-          setActiveTermName(activeTermData.value);
-         
-          setIsPromotionPeriod(activeTermData.value.toLowerCase().includes('third'));
+        let currentTerm = '';
+        let currentSession = '';
+
+        if (settingsData) {
+          const termRow = settingsData.find(s => s.type === 'term');
+          const sessionRow = settingsData.find(s => s.type === 'session');
+
+          if (termRow) {
+            currentTerm = termRow.value.split(' (')[0];
+            setActiveTermName(termRow.value);
+            setIsPromotionPeriod(termRow.value.toLowerCase().includes('third') || termRow.value.toLowerCase().includes('3rd'));
+          }
+          if (sessionRow) {
+            currentSession = sessionRow.value;
+            setActiveSessionName(sessionRow.value);
+          }
         }
 
-
+        // 2. Fetch all configuration classes
         const { data: classesData } = await supabase
           .from('classes')
           .select('name')
@@ -53,23 +64,50 @@ export const TeacherPromotion = () => {
           setAvailableClasses(classesData.map(c => c.name));
         }
 
+        // 3. Fetch teacher profile
         const { data: teacher } = await supabase
           .from('teachers')
           .select('*')
           .eq('email', user.email)
           .single();
-
-
         
         if (teacher) {
           setTeacherData(teacher);
+
+          // 4. Fetch roster students
           const { data: stds } = await supabase
             .from('students')
             .select('*')
             .eq('class_name', teacher.is_class_teacher_of)
-            .eq('is_active', true);
-          if (stds) setStudents(stds);
+            .eq('is_active', true)
+            .order('name', { ascending: true });
 
+          // 5. Fetch saved results engine promotion snapshots
+          const { data: savedDecisions } = await supabase
+            .from('student_promotions')
+            .select('*')
+            .eq('class_name', teacher.is_class_teacher_of)
+            .eq('session', currentSession);
+
+          // 6. Merge decision metrics directly into the active UI state objects
+          const enrichedStudents = (stds || []).map(student => {
+            const decisionRow = savedDecisions?.find(d => d.student_id === student.id);
+            return {
+              ...student,
+              annual_average: decisionRow ? decisionRow.annual_average : null,
+              recommended_decision: decisionRow ? decisionRow.decision : 'Pending Review'
+            };
+          });
+
+          setStudents(enrichedStudents);
+
+          // 7. Auto-select IDs optimized as eligible ('Promoted' or 'Promoted on Trial')
+          const autoSelectedIds = enrichedStudents
+            .filter(s => s.recommended_decision === 'Promoted' || s.recommended_decision === 'Promoted on Trial')
+            .map(s => s.id);
+          setSelectedStudentIds(autoSelectedIds);
+
+          // 8. Fetch request history logs
           const { data: hist } = await supabase
             .from('promotion_requests')
             .select('*')
@@ -111,12 +149,12 @@ export const TeacherPromotion = () => {
       }]);
 
       if (!error) {
-        Swal.fire('Submitted', 'Request sent to Admin for approval.', 'success');
+        Swal.fire('Submitted', 'Request package sent to Admin for approval.', 'success');
         setSelectedStudentIds([]);
         setTargetClass('');
         setShowClassModal(false);
         setActiveTab('history');
-        const { data: hist } = await supabase.from('promotion_requests').select('*').eq('teacher_id', teacherData.id);
+        const { data: hist } = await supabase.from('promotion_requests').select('*').eq('teacher_id', teacherData.id).order('created_at', { ascending: false });
         setHistory(hist);
       }
     } catch (err) {
@@ -147,7 +185,7 @@ export const TeacherPromotion = () => {
     });
 
     if (result.isConfirmed) {
-      setLoading(true);setSelectedTerm(activeTerm || '');
+      setLoading(true);
       try {
         const { error } = await supabase
           .from('promotion_requests')
@@ -174,18 +212,33 @@ export const TeacherPromotion = () => {
 
   const filteredStudents = students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  const getDecisionBadgeColor = (decision) => {
+    switch (decision) {
+      case 'Promoted': return 'bg-green-100 text-green-700 border-green-200';
+      case 'Promoted on Trial': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Repeat': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Withheld': return 'bg-gray-100 text-gray-700 border-gray-200';
+      default: return 'bg-blue-50 text-blue-600 border-blue-100';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-              <FaGraduationCap className="text-primary text-2xl" />
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center border border-indigo-100">
+                <FaGraduationCap className="text-indigo-600 text-2xl" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900">Promotion Request Hub</h1>
+                <p className="text-sm text-gray-500">Managed by: <span className="font-bold text-gray-700">{teacherData?.name || 'Loading...'}</span></p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Promotion Request</h1>
-              <p className="text-sm text-gray-500">Managed by: <span className="font-bold">{teacherData?.name || 'Loading...'}</span></p>
+            <div className="text-right text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-lg border border-indigo-100">
+              Session Context: {activeSessionName || 'Unset'}
             </div>
           </div>
         </div>
@@ -194,114 +247,141 @@ export const TeacherPromotion = () => {
         <div className="flex gap-4 mb-6 border-b">
           <button
             onClick={() => setActiveTab('request')}
-            className={`pb-2 px-4 ${activeTab === 'request' ? 'border-b-2 border-primary text-primary font-bold' : 'text-gray-400'}`}
+            className={`pb-2 px-4 transition-all text-sm font-semibold ${activeTab === 'request' ? 'border-b-2 border-indigo-600 text-indigo-600 font-bold' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            Request
+            Create Request Package
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`pb-2 px-4 ${activeTab === 'history' ? 'border-b-2 border-primary text-primary font-bold' : 'text-gray-400'}`}
+            className={`pb-2 px-4 transition-all text-sm font-semibold ${activeTab === 'history' ? 'border-b-2 border-indigo-600 text-indigo-600 font-bold' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            History
+            Submission History
           </button>
         </div>
 
         {/* REQUEST TAB */}
         {activeTab === 'request' && (
           <div>
-            {/* Class Info Card */}
-
             {!isPromotionPeriod && (
-              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-center gap-4 text-orange-700">
+              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-center gap-4 text-orange-700">
                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
                   <FaLock className="text-orange-600" />
                 </div>
                 <div>
                   <p className="font-bold text-sm">Promotion Requests Locked</p>
-                  <p className="text-xs opacity-80">
-                    Students can only be promoted during the <b>Third Term</b>. 
-                    Current term: <span className="font-semibold">{activeTermName || 'Not Set'}</span>
+                  <p className="text-xs opacity-90">
+                    Students can only be promoted during the end-of-year <b>Third Term</b> evaluation window. 
+                    Current operational term status: <span className="font-semibold text-orange-800">{activeTermName || 'Not Set'}</span>
                   </p>
                 </div>
               </div>
             )}
 
-
-            <div className="bg-linear-to-r from-primary/5 to-blue-50 rounded-xl p-5 mb-6 border border-primary/20">
+            <div className="bg-linear-to-r from-indigo-50 to-blue-50 rounded-xl p-5 mb-6 border border-indigo-100 shadow-xs">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-sm text-gray-500">Your Assigned Class</p>
-                  <h2 className="text-2xl font-bold text-gray-800">{teacherData?.is_class_teacher_of || '—'}</h2>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Your Assigned Classroom</p>
+                  <h2 className="text-2xl font-black text-slate-800">{teacherData?.is_class_teacher_of || '—'}</h2>
                 </div>
-                <div className="bg-white rounded-xl px-4 py-2 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-primary">{students.length}</p>
-                  <p className="text-xs text-gray-500">Total Students</p>
+                <div className="bg-white rounded-xl px-4 py-2 text-center shadow-xs border border-gray-100">
+                  <p className="text-2xl font-black text-indigo-600">{students.length}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Roster</p>
                 </div>
               </div>
             </div>
 
+            {/* Smart Automated Preselection Notice */}
+            {isPromotionPeriod && students.length > 0 && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-medium rounded-xl flex items-center gap-2">
+                <FaUserCheck className="text-emerald-500 text-sm" />
+                <span><b>Smart Automation Connected:</b> System pre-selected students calculated as eligible based on saved session performance logs.</span>
+              </div>
+            )}
+
             {/* Student Table */}
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-4 border-b flex flex-col sm:flex-row justify-between gap-4">
-                <div className="relative flex-1">
-                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
+              <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50">
+                <div className="relative w-full sm:flex-1">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
                   <input
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm outline-none border"
-                    placeholder="Search students..."
+                    className="w-full pl-9 pr-4 py-2 bg-white rounded-xl text-sm border border-gray-200 outline-none focus:border-indigo-500 transition-colors"
+                    placeholder="Search students by name..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                   />
                 </div>
-             <button
+                <button
                   onClick={openClassModal}
                   disabled={loading || selectedStudentIds.length === 0 || !isPromotionPeriod}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                  className={`w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                     !isPromotionPeriod 
-                      ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
-                      : 'bg-primary text-white hover:bg-primary-dark shadow-lg shadow-primary/20'
+                      ? 'bg-gray-200 cursor-not-allowed text-gray-400 border border-gray-300' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-600/10'
                   }`}
                 >
-                  {!isPromotionPeriod ? <FaLock /> : <FaPaperPlane />}
-                  {loading ? 'Sending...' : !isPromotionPeriod ? 'Locked (3rd Term Only)' : 'Submit Request'}
+                  {!isPromotionPeriod ? <FaLock size={12} /> : <FaPaperPlane size={12} />}
+                  {loading ? 'Processing...' : !isPromotionPeriod ? 'Locked (3rd Term Only)' : 'Submit Selected Package'}
                 </button>
               </div>
 
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
                     <tr>
-                      <th className="p-4 w-10">
-                        <input type="checkbox" onChange={e => setSelectedStudentIds(e.target.checked ? students.map(s => s.id) : [])} />
+                      <th className="p-4 w-12 text-center">
+                        <input 
+                          type="checkbox" 
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                          checked={selectedStudentIds.length === students.length && students.length > 0}
+                          onChange={e => setSelectedStudentIds(e.target.checked ? students.map(s => s.id) : [])} 
+                        />
                       </th>
-                      <th className="p-4">Student Name</th>
+                      <th className="p-4">Student Name Particulars</th>
                       <th className="p-4">Student ID</th>
-                      <th className="p-4">Current Class</th>
-                      <th className="p-4">Status</th>
+                      <th className="p-4 text-center">Session Average</th>
+                      <th className="p-4 text-center">System Ledger Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-gray-100 text-sm">
                     {filteredStudents.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="text-center py-8 text-gray-500">No students found</td>
+                        <td colSpan="5" className="text-center py-10 text-gray-400 font-medium">No active student records matched current criteria</td>
                       </tr>
                     ) : (
                       filteredStudents.map(s => (
-                        <tr key={s.id} className="hover:bg-gray-50">
-                          <td className="p-4">
+                        <tr key={s.id} className="hover:bg-gray-50/70 transition-colors">
+                          <td className="p-4 text-center">
                             <input
                               type="checkbox"
+                              className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
                               checked={selectedStudentIds.includes(s.id)}
                               onChange={() => setSelectedStudentIds(prev =>
                                 prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
                               )}
                             />
                           </td>
-                          <td className="p-4 font-medium">{s.name}</td>
-                          <td className="p-4 text-sm text-gray-500">{s.student_id}</td>
-                          <td className="p-4 text-sm text-gray-600">{s.class_name}</td>
                           <td className="p-4">
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold">ACTIVE</span>
+                            <div className="font-bold text-gray-800">{s.name}</div>
+                          </td>
+                          <td className="p-4 font-mono text-xs text-blue-600 font-bold">{s.student_id}</td>
+                          <td className="p-4 text-center">
+                            {s.annual_average !== null ? (
+                              <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md font-black text-xs border ${
+                                s.annual_average >= 50 ? 'bg-green-50 text-green-700 border-green-100' :
+                                s.annual_average >= 45 ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                'bg-red-50 text-red-600 border-red-100'
+                              }`}>
+                                {s.annual_average}%
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400 font-medium italic">No scores data</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className={`inline-flex items-center px-3 py-1 border rounded-full text-[11px] font-black uppercase tracking-wider ${getDecisionBadgeColor(s.recommended_decision)}`}>
+                              {s.recommended_decision}
+                            </span>
                           </td>
                         </tr>
                       ))
@@ -310,29 +390,36 @@ export const TeacherPromotion = () => {
                 </table>
               </div>
 
-              {/* Mobile Cards */}
+              {/* Mobile Cards View */}
               <div className="md:hidden divide-y divide-gray-100">
                 {filteredStudents.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">No students found</div>
+                  <div className="p-10 text-center text-gray-400 font-medium">No students found</div>
                 ) : (
                   filteredStudents.map(s => (
-                    <div key={s.id} className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+                    <div key={s.id} className="p-4 hover:bg-gray-50/50">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-800">{s.name}</h3>
-                            <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-medium">Active</span>
+                          <h3 className="font-bold text-gray-800 text-sm">{s.name}</h3>
+                          <p className="text-xs font-mono text-blue-600 font-bold mt-0.5">ID: {s.student_id}</p>
+                          
+                          <div className="flex flex-wrap gap-2 items-center mt-2">
+                            {s.annual_average !== null && (
+                              <span className="text-[11px] font-black bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                                Avg: {s.annual_average}%
+                              </span>
+                            )}
+                            <span className={`px-2.5 py-0.5 border rounded-full text-[10px] font-bold uppercase ${getDecisionBadgeColor(s.recommended_decision)}`}>
+                              {s.recommended_decision}
+                            </span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">ID: {s.student_id}</p>
-                          <p className="text-xs text-gray-600 mt-1">Class: {s.class_name}</p>
                         </div>
                         <input
                           type="checkbox"
+                          className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer mt-1"
                           checked={selectedStudentIds.includes(s.id)}
                           onChange={() => setSelectedStudentIds(prev =>
                             prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
                           )}
-                          className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
                         />
                       </div>
                     </div>
@@ -340,10 +427,11 @@ export const TeacherPromotion = () => {
                 )}
               </div>
 
-              {/* Footer */}
+              {/* Footer Metrics */}
               {filteredStudents.length > 0 && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 text-right">
-                  <p className="text-xs text-gray-500">Selected: {selectedStudentIds.length} of {filteredStudents.length} students</p>
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs font-medium text-gray-500">
+                  <div>Roster count: {filteredStudents.length}</div>
+                  <div className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md font-bold">Selected for transmission: {selectedStudentIds.length} students</div>
                 </div>
               )}
             </div>
@@ -352,70 +440,59 @@ export const TeacherPromotion = () => {
 
         {/* HISTORY TAB */}
         {activeTab === 'history' && (
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            {/* Header with Delete Button */}
+          <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
+            {/* Header with Clear Button */}
             <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="relative w-full sm:w-64">
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" placeholder="Search history..." className="w-full pl-9 pr-4 py-2 bg-white rounded-xl text-sm outline-none border border-gray-200" />
-              </div>
+              <h3 className="text-sm font-bold text-gray-700">Dispatched Promotion Request History Log</h3>
               <button
                 onClick={handleDeleteHistory}
                 disabled={history.length === 0 || loading}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
               >
-                <FaTrashAlt size={14} /> Delete History
+                <FaTrashAlt size={12} /> Clear Request Log
               </button>
             </div>
 
-            {/* Desktop Table */}
+            {/* Desktop History Table */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
                   <tr>
-                    <th className="p-4">Date</th>
+                    <th className="p-4">Submission Date</th>
                     <th className="p-4">From Class</th>
-                    <th className="p-4">Requested Class</th>
-                    <th className="p-4">Students</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Reason</th>
-                    <th className="p-4 text-center">Action</th>
+                    <th className="p-4">Target Destination Class</th>
+                    <th className="p-4 text-center">Batch Size</th>
+                    <th className="p-4 text-center">Admin Status</th>
+                    <th className="p-4 text-center">Action / Notes</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-gray-100 text-sm">
                   {history.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="text-center py-8 text-gray-500">No promotion requests yet</td>
+                      <td colSpan="6" className="text-center py-10 text-gray-400 font-medium">No historic submission packages discovered</td>
                     </tr>
                   ) : (
                     history.map(h => (
-                      <tr key={h.id} className="hover:bg-gray-50">
-                        <td className="p-4 text-sm">{new Date(h.created_at).toLocaleDateString()}</td>
-                        <td className="p-4 text-sm text-gray-600">{h.from_class}</td>
-                        <td className="p-4 font-bold text-primary">{h.requested_class}</td>
-                        <td className="p-4 text-sm">{h.student_ids?.length || 0} Students</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                            h.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            h.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      <tr key={h.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="p-4 text-gray-600 font-medium">{new Date(h.created_at).toLocaleDateString()}</td>
+                        <td className="p-4 text-gray-600 font-semibold">{h.from_class}</td>
+                        <td className="p-4 font-black text-indigo-600">{h.requested_class}</td>
+                        <td className="p-4 text-center font-bold text-gray-700 bg-gray-50/30">{h.student_ids?.length || 0} Students</td>
+                        <td className="p-4 text-center">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                            h.status === 'pending' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                            h.status === 'approved' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
                           }`}>
                             {h.status}
                           </span>
                         </td>
-                        <td className="p-4">
+                        <td className="p-4 text-center">
                           {h.status === 'rejected' && h.remarks ? (
-                            <button onClick={() => viewRejectionReason(h)} className="flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-medium">
-                              <FaComment size={12} /> View Reason
+                            <button onClick={() => viewRejectionReason(h)} className="inline-flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded border border-red-100 transition-colors">
+                              <FaComment size={12} /> View Feedback
                             </button>
                           ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          {h.status === 'rejected' && h.remarks && (
-                            <button onClick={() => viewRejectionReason(h)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="View Details">
-                              <FaEye size={14} />
-                            </button>
+                            <span className="text-xs text-gray-400 italic font-medium">No notes</span>
                           )}
                         </td>
                       </tr>
@@ -425,34 +502,34 @@ export const TeacherPromotion = () => {
               </table>
             </div>
 
-            {/* Mobile Cards */}
+            {/* Mobile History Cards */}
             <div className="md:hidden divide-y divide-gray-100">
               {history.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No promotion requests yet</div>
+                <div className="p-10 text-center text-gray-400 font-medium">No historic submission packages discovered</div>
               ) : (
                 history.map(h => (
-                  <div key={h.id} className="p-4">
-                    <div className="flex justify-between items-start mb-3">
+                  <div key={h.id} className="p-4 hover:bg-gray-50/50">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="text-xs text-gray-400">{new Date(h.created_at).toLocaleDateString()}</p>
+                        <p className="text-[11px] text-gray-400 font-bold">{new Date(h.created_at).toLocaleDateString()}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm text-gray-500">{h.from_class}</span>
-                          <FaArrowRight className="text-gray-400 text-xs" />
-                          <span className="text-sm font-semibold text-primary">{h.requested_class}</span>
+                          <span className="text-xs font-semibold text-gray-500">{h.from_class}</span>
+                          <FaArrowRight className="text-gray-400 text-[10px]" />
+                          <span className="text-sm font-black text-indigo-600">{h.requested_class}</span>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        h.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        h.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                        h.status === 'pending' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                        h.status === 'approved' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
                       }`}>
                         {h.status}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">{h.student_ids?.length || 0} students</span>
+                    <div className="flex justify-between items-center text-xs mt-3">
+                      <span className="text-gray-500 font-medium">Batch size: <b>{h.student_ids?.length || 0} students</b></span>
                       {h.status === 'rejected' && h.remarks && (
-                        <button onClick={() => viewRejectionReason(h)} className="text-red-500 text-xs font-medium flex items-center gap-1">
-                          <FaComment size={12} /> View Reason
+                        <button onClick={() => viewRejectionReason(h)} className="text-red-500 font-bold flex items-center gap-1 bg-red-50 px-2 py-0.5 border border-red-100 rounded">
+                          <FaComment size={10} /> View Reason
                         </button>
                       )}
                     </div>
@@ -466,32 +543,32 @@ export const TeacherPromotion = () => {
 
       {/* Target Class Selection Modal */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowClassModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-linear-to-r from-primary/5 to-transparent">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4" onClick={() => setShowClassModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-linear-to-r from-indigo-50 to-transparent">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Select Destination Class</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {selectedStudentIds.length} student(s) selected for promotion
+                <h2 className="text-lg font-black text-gray-900">Choose Promotion Target</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Packaging <b>{selectedStudentIds.length} student(s)</b> for migration approval.
                 </p>
               </div>
               <button onClick={() => setShowClassModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
-                <FaTimes size={20} />
+                <FaTimes size={16} />
               </button>
             </div>
-            <div className="p-5">
-              <div className="mb-4">
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Current Class</label>
-                <div className="w-full p-3 bg-gray-100 rounded-xl text-gray-700 font-medium">
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Current Class Origin</label>
+                <div className="w-full p-3 bg-gray-50 border rounded-xl text-gray-700 font-bold text-sm">
                   {teacherData?.is_class_teacher_of || '—'}
                 </div>
               </div>
-              <div className="mb-4">
-                <label className="text-xs font-semibold text-gray-500 block mb-1">Promote To:</label>
+              <div>
+                <label className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider block mb-1">Target Destination Class</label>
                 <select
                   value={targetClass}
                   onChange={(e) => setTargetClass(e.target.value)}
-                  className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full p-3 bg-white border-2 border-gray-200 focus:border-indigo-500 rounded-xl outline-none text-sm font-semibold text-gray-700 transition-colors"
                 >
                   <option value="">Select Target Class</option>
                   {availableClasses.map((className) => (
@@ -501,63 +578,63 @@ export const TeacherPromotion = () => {
                   ))}
                 </select>
               </div>
-              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                <p className="text-xs text-blue-600 flex items-center gap-1">
-                  <FaStar className="text-yellow-500" size={12} />
-                  Note: Students will be moved to the selected class after admin approval
+              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 flex items-start gap-2">
+                <FaStar className="text-amber-500 text-xs shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed text-blue-700 font-medium">
+                  Notice: Once submitted, names will remain active in your current class registry until an institutional administrator officially accepts and processes the promotion request.
                 </p>
               </div>
             </div>
-            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <button onClick={() => setShowClassModal(false)} className="px-5 py-2 bg-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-300 transition-colors">
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button onClick={() => setShowClassModal(false)} className="px-4 py-2 bg-white border rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition-colors">
                 Cancel
               </button>
               <button 
                 onClick={handleSubmitRequest} 
                 disabled={loading || !targetClass}
-                className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/10 hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
               >
-                {loading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
-                {loading ? 'Submitting...' : 'Submit Request'}
+                {loading ? <FaSpinner className="animate-spin" /> : <FaPaperPlane size={10} />}
+                {loading ? 'Transmitting...' : 'Dispatch to Admin'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Rejection Reason Modal */}
+      {/* Rejection Reason Feedback Modal */}
       {showReasonModal && selectedHistoryItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowReasonModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4" onClick={() => setShowReasonModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-linear-to-r from-red-50 to-transparent">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Rejection Reason</h2>
-                <p className="text-sm text-gray-500 mt-1">Promotion request from {selectedHistoryItem.from_class} to {selectedHistoryItem.requested_class}</p>
+                <h2 className="text-lg font-black text-gray-900">Admin Feedback Return</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Package: {selectedHistoryItem.from_class} → {selectedHistoryItem.requested_class}</p>
               </div>
               <button onClick={() => setShowReasonModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
-                <FaTimesCircle size={20} />
+                <FaTimesCircle size={18} />
               </button>
             </div>
             <div className="p-5">
               <div className="bg-red-50 rounded-xl p-4 border border-red-100">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0">
-                    <FaTimesCircle className="text-red-500" />
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0 border border-red-200">
+                    <FaExclamationTriangle className="text-red-500 text-xs" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-red-700 mb-1">Reason for rejection:</p>
-                    <p className="text-gray-700 text-sm leading-relaxed">{selectedHistoryItem.remarks || 'No specific reason provided.'}</p>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-red-800 tracking-wide uppercase mb-1">Reason for Return/Rejection:</p>
+                    <p className="text-gray-700 text-sm font-medium leading-relaxed">{selectedHistoryItem.remarks || 'No explicit adjustment notes provided.'}</p>
                   </div>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Request submitted on: {new Date(selectedHistoryItem.created_at).toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">Students affected: {selectedHistoryItem.student_ids?.length || 0}</p>
+              <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-1 text-[11px] text-gray-500 font-medium">
+                <p>Submission date: {new Date(selectedHistoryItem.created_at).toLocaleString()}</p>
+                <p>Affected students in batch: {selectedHistoryItem.student_ids?.length || 0}</p>
               </div>
             </div>
-            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end">
-              <button onClick={() => setShowReasonModal(false)} className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors">
-                Got it
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button onClick={() => setShowReasonModal(false)} className="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors">
+                Acknowledge
               </button>
             </div>
           </div>
