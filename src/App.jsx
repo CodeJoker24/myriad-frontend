@@ -20,7 +20,7 @@ import { StudentHome } from './pages/student/dashboard/StudentHome';
 import { StudentProfile } from './pages/student/dashboard/StudentProfile';
 import { StudentResults } from './pages/student/dashboard/StudentResults';
 import { StudentAttendance } from './pages/student/dashboard/StudentAttendance';
-import { StudentCourses } from './pages/student/dashboard/StudentCourses';
+
 import { StudentChangePassword } from './pages/student/dashboard/StudentChangePassword';
 import { DashboardHome } from './pages/admin/dashboard/DashboardHome';
 import { SchoolManagementLayout } from './pages/admin/dashboard/school-management/SchoolManagementLayout';
@@ -101,7 +101,6 @@ function App() {
           <Route path="profile" element={<StudentProfile />} />
           <Route path="results" element={<StudentResults />} />
           <Route path="attendance" element={<StudentAttendance />} />
-          <Route path="courses" element={<StudentCourses />} />
           <Route path="change-password" element={<StudentChangePassword />} />
         </Route>
       </Routes>

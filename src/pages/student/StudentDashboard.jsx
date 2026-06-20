@@ -58,7 +58,6 @@ const StudentDashboard = () => {
     { name: 'Dashboard', icon: <FaTachometerAlt />, path: '/student/dashboard' },
     { name: 'My Results', icon: <FaClipboardList />, path: '/student/dashboard/results' },
     { name: 'Attendance', icon: <FaCalendarCheck />, path: '/student/dashboard/attendance' },
-    { name: 'My Courses', icon: <FaBook />, path: '/student/dashboard/courses' },
     { name: 'Profile', icon: <FaUserCircle />, path: '/student/dashboard/profile' },
   ];
 
