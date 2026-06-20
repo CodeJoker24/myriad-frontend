@@ -3,7 +3,7 @@ import { supabase } from '../../../db';
 import { 
   FaBook, FaCalendarCheck, FaClipboardList, FaUserGraduate, 
   FaHourglassHalf, FaCheckCircle, FaTimesCircle, FaChevronRight,
-  FaSchool, FaChartLine, FaTrophy, FaClock
+  FaSchool, FaChartLine, FaTrophy, FaClock, FaTimes
 } from 'react-icons/fa';
 
 export const StudentHome = () => {
@@ -13,6 +13,7 @@ export const StudentHome = () => {
   const [currentClass, setCurrentClass] = useState(studentSnapshot?.class_name || 'Unassigned');
   const [enrolledCount, setEnrolledCount] = useState(0); 
   const [promotionStatus, setPromotionStatus] = useState(null);
+  const [dismissedPromotionId, setDismissedPromotionId] = useState(null);
   
   const [activeSession, setActiveSession] = useState('2025/2026');
   const [activeTerm, setActiveTerm] = useState('Third Term');
@@ -24,11 +25,17 @@ export const StudentHome = () => {
   };
 
   useEffect(() => {
+    const savedDismissedId = localStorage.getItem(`dismissed_promotion_${studentSnapshot?.id}`);
+    if (savedDismissedId) {
+      setDismissedPromotionId(savedDismissedId);
+    }
+  }, [studentSnapshot?.id]);
+
+  useEffect(() => {
     const fetchLiveDashboardData = async () => {
       if (!studentSnapshot?.id) return;
       setLoading(true);
       try {
-       
         const { data: settingsRows, error: settingsError } = await supabase
           .from('academic_settings')
           .select('*')
@@ -48,7 +55,6 @@ export const StudentHome = () => {
         setActiveSession(currentSessionName);
         setActiveTerm(currentTermName);
 
-       
         const { data: profileData, error: profileError } = await supabase
           .from('students')
           .select('class_name')
@@ -65,7 +71,6 @@ export const StudentHome = () => {
           localStorage.setItem('student', JSON.stringify(updatedSnap));
         }
 
-       
         let coreClassLookup = rawClassString;
         let extractedDept = 'General';
 
@@ -117,7 +122,6 @@ export const StudentHome = () => {
           }
         }
 
-  
         const { data: attendanceRows, error: attError } = await supabase
           .from('attendance')
           .select('*')
@@ -134,14 +138,12 @@ export const StudentHome = () => {
             );
           });
 
-          
           const daysPresent = currentTermLogs.filter(row => row.status?.toLowerCase() === 'present').length;
           setAttendanceCount(daysPresent);
         } else {
           setAttendanceCount(0);
         }
 
-       
         const { data: requestData, error: requestError } = await supabase
           .from('promotion_requests')
           .select('*')
@@ -164,6 +166,19 @@ export const StudentHome = () => {
 
     fetchLiveDashboardData();
   }, [studentSnapshot?.id]);
+
+  const handleDismissPromotion = () => {
+    if (promotionStatus) {
+      localStorage.setItem(`dismissed_promotion_${studentSnapshot?.id}`, promotionStatus.id);
+      setDismissedPromotionId(promotionStatus.id);
+    }
+  };
+
+  const shouldShowPromotion = () => {
+    if (!promotionStatus) return false;
+    if (dismissedPromotionId === promotionStatus.id) return false;
+    return true;
+  };
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 p-4 md:p-6">
@@ -191,33 +206,43 @@ export const StudentHome = () => {
           </div>
         </div>
 
-        {promotionStatus && (
-          <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-4 transition-all ${
+        {shouldShowPromotion() && (
+          <div className={`mb-6 p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${
             promotionStatus.status === 'pending' ? 'bg-amber-50 border-amber-200' :
             promotionStatus.status === 'approved' ? 'bg-emerald-50 border-emerald-200' : 
             'bg-red-50 border-red-200'
           }`}>
-            <div className="shrink-0 text-xl">
-              {promotionStatus.status === 'pending' && <FaHourglassHalf className="text-amber-600 animate-pulse" />}
-              {promotionStatus.status === 'approved' && <FaCheckCircle className="text-emerald-600" />}
-              {promotionStatus.status === 'rejected' && <FaTimesCircle className="text-red-600" />}
+            <div className="flex items-center gap-4 flex-1">
+              <div className="shrink-0 text-xl">
+                {promotionStatus.status === 'pending' && <FaHourglassHalf className="text-amber-600 animate-pulse" />}
+                {promotionStatus.status === 'approved' && <FaCheckCircle className="text-emerald-600" />}
+                {promotionStatus.status === 'rejected' && <FaTimesCircle className="text-red-600" />}
+              </div>
+              <div className="flex-1">
+                <p className={`font-bold text-xs uppercase tracking-wider ${
+                  promotionStatus.status === 'pending' ? 'text-amber-800' :
+                  promotionStatus.status === 'approved' ? 'text-emerald-800' : 
+                  'text-red-800'
+                }`}>
+                  {promotionStatus.status === 'pending' && '⏳ Promotion Request Pending'}
+                  {promotionStatus.status === 'approved' && '✅ Promotion Approved!'}
+                  {promotionStatus.status === 'rejected' && '❌ Promotion Request Rejected'}
+                </p>
+                <p className="text-xs opacity-90 mt-0.5 text-gray-600">
+                  {promotionStatus.status === 'pending' && `Your teacher has recommended you for promotion to ${promotionStatus.requested_class}. Awaiting admin approval.`}
+                  {promotionStatus.status === 'approved' && `Congratulations! You have been promoted from ${promotionStatus.from_class} to ${promotionStatus.requested_class}.`}
+                  {promotionStatus.status === 'rejected' && `${promotionStatus.remarks || 'Please consult your teacher for more information.'}`}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className={`font-bold text-xs uppercase tracking-wider ${
-                promotionStatus.status === 'pending' ? 'text-amber-800' :
-                promotionStatus.status === 'approved' ? 'text-emerald-800' : 
-                'text-red-800'
-              }`}>
-                {promotionStatus.status === 'pending' && '⏳ Promotion Request Pending'}
-                {promotionStatus.status === 'approved' && '✅ Promotion Approved!'}
-                {promotionStatus.status === 'rejected' && '❌ Promotion Request Rejected'}
-              </p>
-              <p className="text-xs opacity-90 mt-0.5 text-gray-600">
-                {promotionStatus.status === 'pending' && `Your teacher has recommended you for promotion to ${promotionStatus.requested_class}. Awaiting admin approval.`}
-                {promotionStatus.status === 'approved' && `Congratulations! You have been promoted from ${promotionStatus.from_class} to ${promotionStatus.requested_class}.`}
-                {promotionStatus.status === 'rejected' && `${promotionStatus.remarks || 'Please consult your teacher for more information.'}`}
-              </p>
-            </div>
+            
+            <button
+              onClick={handleDismissPromotion}
+              className="shrink-0 p-2 hover:bg-white/50 rounded-xl transition-all text-gray-500 hover:text-gray-700"
+              title="Dismiss this notification"
+            >
+              <FaTimes size={18} />
+            </button>
           </div>
         )}
 
