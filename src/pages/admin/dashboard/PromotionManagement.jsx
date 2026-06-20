@@ -24,6 +24,7 @@ export const PromotionManagement = () => {
   const [sessions, setSessions] = useState([]);
   const [terms, setTerms] = useState([]);
   const [promotionRequests, setPromotionRequests] = useState([]);
+  const [studentLookup, setStudentLookup] = useState({}); // Stores { id: { name, student_id } } for instant row viewing
 
   const [filterClass, setFilterClass] = useState('');
   const [filterSession, setFilterSession] = useState('');
@@ -82,8 +83,36 @@ export const PromotionManagement = () => {
   };
 
   const fetchRequests = async () => {
-    const { data } = await supabase.from('promotion_requests').select('*').order('created_at', { ascending: false });
-    setPromotionRequests(data || []);
+    // 1. Fetch the requests
+    const { data: requestsData } = await supabase.from('promotion_requests').select('*').order('created_at', { ascending: false });
+    
+    // 2. Gather all student IDs inside the requests to run an optimized lookup fetch
+    const allIds = [];
+    if (requestsData) {
+      requestsData.forEach(r => {
+        if (Array.isArray(r.student_ids)) {
+          allIds.push(...r.student_ids);
+        }
+      });
+    }
+
+    // 3. Query the profiles for these students to resolve names on the dashboard
+    if (allIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('students')
+        .select('id, name, student_id')
+        .in('id', [...new Set(allIds)]);
+
+      if (profiles) {
+        const mapping = {};
+        profiles.forEach(p => {
+          mapping[p.id] = { name: p.name, student_id: p.student_id };
+        });
+        setStudentLookup(mapping);
+      }
+    }
+
+    setPromotionRequests(requestsData || []);
   };
 
   const handleOpenRequestModal = async (request) => {
@@ -458,10 +487,10 @@ export const PromotionManagement = () => {
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gray-50 border-b-2 border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                     <th className="p-4 text-left">Date</th>
-                    <th className="p-4 text-left">Teacher</th>
+                    <th className="p-4 text-left">Teacher Name</th>
+                    <th className="p-4 text-left">Included Students Information</th>
                     <th className="p-4 text-left">From</th>
                     <th className="p-4 text-left">Target</th>
-                    <th className="p-4 text-center">Students</th>
                     <th className="p-4 text-center">Status</th>
                     <th className="p-4 text-center">Actions</th>
                   </tr>
@@ -479,12 +508,24 @@ export const PromotionManagement = () => {
                   ) : (
                     filteredRequests.map(r => (
                       <tr key={r.id} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-4 text-gray-500">{new Date(r.created_at).toLocaleDateString()}</td>
-                        <td className="p-4 font-semibold text-gray-800">{r.teacher_name}</td>
-                        <td className="p-4 text-gray-600">{r.from_class}</td>
-                        <td className="p-4 font-bold text-blue-600">{r.requested_class}</td>
-                        <td className="p-4 text-center font-semibold">{r.student_ids?.length || 0}</td>
-                        <td className="p-4 text-center">
+                        <td className="p-4 text-gray-500 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
+                        <td className="p-4 font-semibold text-gray-800 whitespace-nowrap">{r.teacher_name}</td>
+                        <td className="p-4 max-w-xs sm:max-w-md">
+                          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1">
+                            {Array.isArray(r.student_ids) && r.student_ids.map(id => {
+                              const details = studentLookup[id];
+                              return (
+                                <div key={id} className="inline-flex flex-col bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs">
+                                  <span className="font-bold text-slate-800">{details?.name || 'Loading Name...'}</span>
+                                  <span className="font-mono text-[10px] text-blue-600">{details?.student_id || 'ID...'}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                        <td className="p-4 text-gray-600 whitespace-nowrap">{r.from_class}</td>
+                        <td className="p-4 font-bold text-blue-600 whitespace-nowrap">{r.requested_class}</td>
+                        <td className="p-4 text-center whitespace-nowrap">
                           <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
                             r.status === 'pending' 
                               ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' 
@@ -495,7 +536,7 @@ export const PromotionManagement = () => {
                             {r.status}
                           </span>
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="p-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <button 
                               onClick={() => handleOpenRequestModal(r)} 

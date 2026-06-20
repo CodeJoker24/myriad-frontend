@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { 
-  FaBars, FaBell, FaUserCircle, FaSearch, FaTachometerAlt, 
+  FaBars, FaUserCircle, FaSearch, FaTachometerAlt, 
   FaSignOutAlt, FaChevronDown, FaUserGraduate, FaBook, 
   FaCalendarCheck, FaClipboardList, FaChartBar, FaTimes,
   FaHome
@@ -11,7 +11,8 @@ import Swal from 'sweetalert2';
 const StudentDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
   const [student, setStudent] = useState(null);
@@ -22,6 +23,17 @@ const StudentDashboard = () => {
       setStudent(JSON.parse(studentData));
     }
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const results = sidebarLinks.filter(link =>
+        link.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setSearchResults(results);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
 
   const handleLogout = () => {
     Swal.fire({
@@ -53,7 +65,13 @@ const StudentDashboard = () => {
   const isActive = (path) => location.pathname === path;
 
   const handleLinkClick = () => {
-    // Close sidebar on ALL devices when a link is clicked
+    setSidebarOpen(false);
+  };
+
+  const handleSearchSelect = (path) => {
+    navigate(path);
+    setSearchQuery('');
+    setSearchResults([]);
     setSidebarOpen(false);
   };
 
@@ -102,85 +120,92 @@ const StudentDashboard = () => {
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Main Content */}
-      <div className="transition-all duration-300">
-        {/* Topbar - Full width */}
-        <header className="h-20 bg-white shadow-sm fixed top-0 right-0 left-0 z-10">
-          <div className="h-full px-6 flex items-center justify-between">
-            {/* Menu button - Shows when sidebar is closed */}
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'ml-0'}`}>
+        {/* Topbar */}
+        <header className="h-20 bg-white shadow-sm fixed top-0 right-0 left-0 z-10 border-b border-gray-100">
+          <div className="h-full px-4 sm:px-6 flex items-center justify-between gap-3">
             {!sidebarOpen && (
               <button 
                 onClick={() => setSidebarOpen(true)} 
-                className="p-2 hover:bg-gray-100 rounded-xl text-gray-600"
+                className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 shrink-0"
               >
                 <FaBars size={20} />
               </button>
             )}
 
-            {/* Spacer when sidebar is open to keep search centered */}
-            {sidebarOpen && <div className="w-10 lg:hidden"></div>}
-
-            <div className={`flex-1 max-w-md ${!sidebarOpen ? 'ml-4' : 'mx-4'}`}>
+            <div className="flex-1 max-w-md relative">
               <div className="relative">
-                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                 <input 
                   type="text" 
-                  placeholder="Search..." 
-                  className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition bg-gray-50 focus:bg-white" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search pages..." 
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition focus:bg-white text-sm" 
                 />
               </div>
+
+              {searchResults.length > 0 && (
+                <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 py-1">
+                  <div className="px-4 py-1.5 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    Quick Navigation
+                  </div>
+                  {searchResults.map((link, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSearchSelect(link.path)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors text-left cursor-pointer font-medium"
+                    >
+                      <span className="text-gray-400 group-hover:text-white">{link.icon}</span>
+                      <span>{link.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {searchQuery && searchResults.length === 0 && (
+                <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden py-6">
+                  <p className="text-sm text-gray-400 text-center font-medium">
+                    No results for "<span className="text-gray-600">{searchQuery}</span>"
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Notifications */}
-              <div className="relative">
-                <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 hover:bg-gray-100 rounded-xl">
-                  <FaBell className="text-gray-600 text-xl" />
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
-                </button>
-                {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <div className="px-5 py-3 border-b border-gray-100">
-                      <h3 className="font-semibold text-gray-800">Notifications</h3>
-                    </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      <div className="px-5 py-4">
-                        <p className="text-sm text-gray-500">No new notifications</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* User Menu */}
+            <div className="relative shrink-0">
+              <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 sm:gap-3 hover:bg-gray-100 rounded-xl p-1.5 transition-colors">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <FaUserGraduate className="text-primary text-lg sm:text-xl" />
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-semibold text-gray-800">{student?.name || 'Student'}</p>
+                  <p className="text-xs text-gray-500">{student?.email || 'student@myriad.com'}</p>
+                </div>
+                <FaChevronDown className={`text-xs text-gray-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
 
-              {/* User Menu */}
-              <div className="relative">
-                <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-3 hover:bg-gray-100 rounded-xl p-2">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <FaUserGraduate className="text-primary text-xl" />
+              {showUserMenu && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                  <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Signed in as</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate">{student?.email}</p>
                   </div>
-                  <div className="hidden md:block text-left">
-                    <p className="text-sm font-semibold text-gray-800">{student?.name || 'Student'}</p>
-                    <p className="text-xs text-gray-500">{student?.email || 'student@myriad.com'}</p>
-                  </div>
-                  <FaChevronDown className={`text-xs text-gray-500 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-                </button>
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                    <Link to="/student/dashboard/profile" className="block px-5 py-3 text-sm text-gray-700 hover:bg-gray-50">
-                      Profile
-                    </Link>
-                    <hr className="my-2 border-gray-100" />
-                    <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50">
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
+                  <Link to="/student/dashboard/profile" onClick={() => setShowUserMenu(false)} className="block px-5 py-3 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors">
+                    <FaUserCircle className="inline mr-2" /> My Profile
+                  </Link>
+                  <hr className="my-1 border-gray-100" />
+                  <button onClick={handleLogout} className="w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-semibold">
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="pt-24 pb-8 px-6 min-h-screen">
+        <main className="pt-24 pb-8 px-4 sm:px-6 min-h-screen">
           <Outlet />
         </main>
       </div>
