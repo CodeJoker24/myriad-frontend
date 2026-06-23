@@ -293,55 +293,6 @@ export const StudentHome = () => {
             <p className="text-lg font-bold text-gray-800 mt-0.5">Not Available</p>
           </div>
         </div>
-
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-8 h-8 bg-linear-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center text-white">
-              <FaChartLine className="text-sm" />
-            </div>
-            <h2 className="text-base font-bold text-gray-800">Session Migration Progress</h2>
-          </div>
-          
-          {promotionStatus ? (
-            <div className="flex flex-col md:flex-row items-center justify-between p-5 bg-linear-to-r from-gray-50 to-white border rounded-xl gap-4">
-              <div className="text-center md:text-left w-full md:w-auto">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Current Class</p>
-                <p className="text-sm font-bold text-gray-700">{promotionStatus.from_class}</p>
-              </div>
-              <div className="hidden md:block">
-                <FaChevronRight className="text-gray-300" />
-              </div>
-              <div className="text-center w-full md:w-auto">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Target Class</p>
-                <p className="text-sm font-black text-blue-600">{promotionStatus.requested_class}</p>
-              </div>
-              <div className="hidden md:block">
-                <FaChevronRight className="text-gray-300" />
-              </div>
-              <div className="text-center md:text-right w-full md:w-auto">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</p>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                  promotionStatus.status === 'approved' 
-                    ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
-                    : promotionStatus.status === 'pending'
-                    ? 'bg-amber-100 text-amber-700 border-amber-200'
-                    : 'bg-red-100 text-red-700 border-red-200'
-                }`}>
-                  {promotionStatus.status === 'approved' ? '✅ Approved' : 
-                   promotionStatus.status === 'pending' ? '⏳ Pending' : '❌ Rejected'}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <FaClock className="text-gray-400 text-2xl" />
-              </div>
-              <p className="text-gray-400 font-medium text-sm">No promotion requests found</p>
-              <p className="text-xs text-gray-400 mt-1">Your session migration status will appear here</p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
