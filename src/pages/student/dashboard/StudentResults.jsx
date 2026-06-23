@@ -222,64 +222,111 @@ export const StudentResults = () => {
         format: 'a4'
       });
 
-      // 1. School Header / Letterhead
+      // --- 1. Letterhead Header ---
       doc.setFont("Helvetica", "bold");
       doc.setFontSize(18);
-      doc.setTextColor(15, 23, 42); // slate-900
+      doc.setTextColor(15, 23, 42); // text-slate-900
       doc.text("MYRIAD ACADEMY", 105, 15, { align: "center" });
 
-      doc.setFont("Helvetica", "normal");
+      doc.setFont("Helvetica", "bold");
       doc.setFontSize(10);
-      doc.setTextColor(75, 85, 99); // gray-600
+      doc.setTextColor(71, 85, 105); // text-gray-600
       doc.text("Omoloye B/Stop Along Owode Idiroko Road Ogun State.", 105, 21, { align: "center" });
 
       doc.setFont("Helvetica", "italic");
       doc.setFontSize(9);
-      doc.setTextColor(37, 99, 235); // blue-600
-      doc.text("Motto: Excelling for Life  |  08034791741, 08038005822", 105, 26, { align: "center" });
+      doc.setTextColor(37, 99, 235); // text-blue-600
+      doc.text("Motto: Excelling for Life", 80, 26, { align: "center" });
+      
+      doc.setFont("Helvetica", "normal");
+      doc.setTextColor(107, 114, 128); // text-gray-500
+      doc.text("  |  08034791741, 08038005822", 125, 26, { align: "center" });
 
       // Clean divider line
       doc.setDrawColor(15, 23, 42);
       doc.setLineWidth(0.4);
       doc.line(10, 30, 200, 30);
 
-      // 2. Student Bio Data Block
+      // --- 2. Bio Data Block (Grey box layout mirroring web layout) ---
+      doc.setDrawColor(243, 244, 246); // border-gray-100
+      doc.setFillColor(249, 250, 251); // bg-gray-50/40
+      doc.rect(10, 34, 122, 22, 'DF');
+
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139); // gray-400 heading
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175); // text-gray-400
+      doc.text("FULL NAME OF STUDENT", 13, 39);
+      doc.setTextColor(15, 23, 42); // text-slate-900
+      doc.setFontSize(10);
+      doc.text(`${liveProfile?.name || studentSnapshot.name || 'LOADING...'}`.toUpperCase(), 13, 44);
+
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("CLASS CONTEXT", 13, 50);
+      doc.setTextColor(29, 78, 216); // text-blue-700
+      doc.setFontSize(9.5);
+      doc.text(`${selectedClass || 'N/A'}`.toUpperCase(), 13, 54);
+
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("STUDENT ID", 75, 39);
+      doc.setTextColor(37, 99, 235); // text-blue-600
+      doc.setFontSize(9.5);
+      doc.text(`${liveProfile?.student_id || 'LOADING...'}`, 75, 44);
+
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text("CURRENT SESSION", 75, 50);
+      doc.setTextColor(30, 41, 59); // text-slate-800
+      doc.setFontSize(9.5);
+      doc.text(`${selectedSession}`, 75, 54);
+
+      // --- 3. Attendance Block (Right side container block) ---
+      doc.setDrawColor(226, 232, 240); // border-slate-200
+      doc.setFillColor(248, 250, 252); // bg-slate-50/50
+      doc.rect(136, 34, 64, 22, 'DF');
+
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(30, 41, 59); // text-slate-800
+      doc.text("ATTENDANCE & MARKS", 139, 39);
+
+      // Mini Grid lines matching the web layout viewports exactly
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
       
-      doc.text("STUDENT FULL NAME:", 12, 38);
+      // Cells
+      doc.rect(139, 41, 28, 6, 'DF'); // Opened
+      doc.rect(169, 41, 28, 6, 'DF'); // Present
+      doc.rect(139, 48, 28, 6, 'DF'); // Obtainable
+      doc.rect(169, 48, 28, 6, 'DF'); // Obtained
+
+      doc.setFontSize(7.5);
+      doc.setTextColor(156, 163, 175);
+      doc.text("Opened:", 140, 45);
       doc.setTextColor(15, 23, 42);
-      doc.text(`${liveProfile?.name || studentSnapshot.name || 'N/A'}`.toUpperCase(), 53, 38);
+      doc.text(`${attendanceStats.opened}`, 162, 45, { align: "right" });
 
-      doc.setTextColor(100, 116, 139);
-      doc.text("STUDENT ID:", 12, 44);
-      doc.setTextColor(37, 99, 235);
-      doc.text(`${liveProfile?.student_id || 'N/A'}`, 53, 44);
+      doc.setTextColor(156, 163, 175);
+      doc.text("Present:", 170, 45);
+      doc.setTextColor(5, 150, 105); // text-emerald-600
+      doc.text(`${attendanceStats.present}`, 194, 45, { align: "right" });
 
-      doc.setTextColor(100, 116, 139);
-      doc.text("CLASS CONTEXT:", 12, 50);
+      doc.setTextColor(156, 163, 175);
+      doc.text("Obtainable:", 140, 52);
       doc.setTextColor(15, 23, 42);
-      doc.text(`${selectedClass || 'N/A'}`.toUpperCase(), 53, 50);
+      doc.text(`${summaryStats.obtainableMarks}`, 162, 52, { align: "right" });
 
-      doc.setTextColor(100, 116, 139);
-      doc.text("ACADEMIC TERM:", 130, 38);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${selectedTerm}`.toUpperCase(), 165, 38);
+      doc.setTextColor(156, 163, 175);
+      doc.text("Obtained:", 170, 52);
+      doc.setTextColor(37, 99, 235); // text-blue-600
+      doc.text(`${summaryStats.grandTotal}`, 194, 52, { align: "right" });
 
-      doc.setTextColor(100, 116, 139);
-      doc.text("CURRENT SESSION:", 130, 44);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${selectedSession}`, 165, 44);
-
-      // Attendance Mini Table on data row
-      doc.setTextColor(100, 116, 139);
-      doc.text("ATTENDANCE:", 130, 50);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`Present: ${attendanceStats.present} / ${attendanceStats.opened}`, 165, 50);
-
-      // 3. Subject Grades Table Matrix
-      const tableHeaders = [["Academic Subject", "CA Score", "Exam Score", "Total (/100)", "Grade", "Remarks"]];
+      // --- 4. Subject Ledger Table Matrix ---
+      const tableHeaders = [["Academic Subject", "CA", "Exam", "Total (/100)", "Grade", "Remarks"]];
       
       const tableRows = results.map(item => {
         const total = parseFloat(item.total_score) || 0;
@@ -294,87 +341,138 @@ export const StudentResults = () => {
       });
 
       if (tableRows.length === 0) {
-        tableRows.push(["No Academic Subject Entries Found For Chosen Term", "-", "-", "-", "-", "-"]);
+        tableRows.push(["No Academic Subject Entries Recorded", "-", "-", "-", "-", "-"]);
       }
 
-      // Draw beautiful, robust structural table
       doc.autoTable({
-        startY: 56,
+        startY: 59,
         head: tableHeaders,
         body: tableRows,
         theme: 'grid',
         headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-        bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59], font: 'Helvetica' },
+        bodyStyles: { fontSize: 8.5, textColor: [51, 65, 85], fontStyle: 'bold' }, 
         columnStyles: {
-          0: { fontStyle: 'bold' },
-          1: { halign: 'center' },
-          2: { halign: 'center' },
-          3: { halign: 'center', fontStyle: 'bold' },
-          4: { halign: 'center', fontStyle: 'bold' },
+          0: { cellWidth: 65, textColor: [15, 23, 42] }, // bold subject name accentuation
+          1: { halign: 'center', cellWidth: 20 },
+          2: { halign: 'center', cellWidth: 20 },
+          3: { halign: 'center', cellWidth: 25 },
+          4: { halign: 'center', cellWidth: 22 },
+          5: { cellWidth: 38 }
         },
         margin: { left: 10, right: 10 },
         didParseCell: function(data) {
-          // Dynamic text coloring for passes and failures inside the PDF rows
-          if (data.section === 'body' && data.column.index === 3) {
-            const val = parseFloat(data.cell.raw);
-            if (!isNaN(val) && val < 40) {
-              data.cell.styles.textColor = [220, 38, 38]; // Red
+          if (data.section === 'body') {
+            const rowData = results[data.row.index];
+            if (rowData) {
+              const total = parseFloat(rowData.total_score) || 0;
+              const isFail = total < 40 || rowData.final_grade === 'F9';
+              
+              // Column 3: Total column accent coloring
+              if (data.column.index === 3) {
+                if (isFail) {
+                  data.cell.styles.textColor = [220, 38, 38]; // text-red-600
+                  data.cell.styles.fillColor = [254, 242, 242]; // bg-red-50/10
+                } else {
+                  data.cell.styles.textColor = [30, 41, 59];
+                  data.cell.styles.fillColor = [248, 250, 252];
+                }
+              }
+
+              // Column 4: Grade layout coloration box bounds
+              if (data.column.index === 4) {
+                if (isFail) {
+                  data.cell.styles.textColor = [185, 28, 28]; // text-red-700
+                  data.cell.styles.fillColor = [254, 242, 242]; // bg-red-50
+                } else {
+                  data.cell.styles.textColor = [4, 120, 87]; // text-emerald-700
+                  data.cell.styles.fillColor = [236, 253, 245]; // bg-emerald-50
+                }
+              }
+
+              // Column 5: Remarks styling parameters
+              if (data.column.index === 5) {
+                if (isFail) {
+                  data.cell.styles.textColor = [239, 68, 68]; // text-red-500
+                } else {
+                  data.cell.styles.textColor = [71, 85, 105]; // text-slate-600
+                }
+              }
             }
           }
         }
       });
 
-      // 4. Summaries and Evaluations block
-      let finalY = doc.lastAutoTable.finalY + 8;
+      // --- 5. Footers Matric Matrix ---
+      let finalY = doc.lastAutoTable.finalY + 6;
 
-      // Keep everything cleanly within viewport limits
       if (finalY > 240) {
         doc.addPage();
         finalY = 20;
       }
 
-      // Left Frame box: Calculations Summary
-      doc.setDrawColor(226, 232, 240);
-      doc.setFillColor(248, 250, 252);
-      doc.rect(10, finalY, 60, 32, 'DF');
+      // Left Frame Box: Summary Statistics (bg-gray-50/50 light look)
+      doc.setDrawColor(243, 244, 246); // border-gray-100
+      doc.setFillColor(249, 250, 251); // bg-gray-50/50 layout
+      doc.rect(10, finalY, 60, 34, 'DF');
 
       doc.setFont("Helvetica", "bold");
       doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text("SUMMARY STATISTICS", 13, finalY + 5);
+      doc.setTextColor(156, 163, 175); // text-gray-400
+      doc.text("SUMMARY INFO", 13, finalY + 5);
 
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(71, 85, 105); // text-slate-700
       doc.setFontSize(9);
-      doc.text(`Total Subjects: ${summaryStats.totalSubjects}`, 13, finalY + 12);
-      doc.text(`Class Size: ${classSize} Students`, 13, finalY + 18);
+      doc.text("Total Subjects: ", 13, finalY + 12);
+      doc.text("Class Size: ", 13, finalY + 18);
+
+      doc.setTextColor(15, 23, 42); // bold content values
+      doc.text(`${summaryStats.totalSubjects}`, 38, finalY + 12);
+      doc.text(`${classSize} Students`, 32, finalY + 18);
+
+      // Average section accent separator line
+      doc.setDrawColor(226, 232, 240);
+      doc.line(13, finalY + 23, 67, finalY + 23);
+
+      doc.setTextColor(30, 41, 59); // text-slate-800
+      doc.text("Average:", 13, finalY + 29);
+      
+      // Draw highlight badge block for total average percentage
+      doc.setDrawColor(219, 234, 254); // border-blue-100
+      doc.setFillColor(239, 246, 255); // bg-blue-50
+      doc.rect(46, finalY + 25, 20, 6, 'DF');
       
       doc.setFont("Helvetica", "bold");
-      doc.text(`Average Percentage: ${summaryStats.average}%`, 13, finalY + 26);
+      doc.setTextColor(37, 99, 235); // text-blue-600
+      doc.text(`${summaryStats.average}%`, 56, finalY + 29, { align: "center" });
 
-      // Right Frame box: Teacher remarks and validation line
-      doc.rect(74, finalY, 126, 32, 'DF');
-      
+      // Right Frame Box: Class Teacher Comment (bg-white perfectly matching layout)
+      doc.setDrawColor(229, 231, 235); // border-gray-200
+      doc.setFillColor(255, 255, 255); // Pure white background
+      doc.rect(74, finalY, 126, 34, 'DF');
+
       doc.setFont("Helvetica", "bold");
       doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text("CLASS TEACHER EVALUATION COMMENT", 78, finalY + 5);
+      doc.setTextColor(156, 163, 175); // text-gray-400
+      doc.text("CLASS TEACHER COMMENT", 78, finalY + 5);
 
-      doc.setFont("Helvetica", "oblique");
+      // Inside value layout string wraps mapping style
+      doc.setFont("Helvetica", "bold");
       doc.setFontSize(9.5);
-      doc.setTextColor(30, 41, 59);
+      doc.setTextColor(30, 41, 59); // text-slate-800
       
-      // Handle multi-line strings wrap safely inside PDF canvas bounds
       const splitRemark = doc.splitTextToSize(teacherRemark.toUpperCase(), 118);
-      doc.text(splitRemark, 78, finalY + 12);
+      doc.text(splitRemark, 78, finalY + 13);
 
-      // Signatures
+      // Lower validation metrics inside signature zone
       doc.setFont("Helvetica", "bold");
       doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text("MYRIAD ACADEMY OFFICIAL SEAL", 78, finalY + 28);
-      doc.text("FORM MASTER SIGNATURE: ___________________", 124, finalY + 28);
+      doc.setTextColor(156, 163, 175); // text-gray-400
+      doc.text("Myriad Academy Seal", 78, finalY + 30);
+      
+      doc.setTextColor(51, 65, 85); // text-slate-700
+      doc.text("FORM MASTER SIG: ___________________", 124, finalY + 30);
 
-      // 5. Final Download Save
+      // --- 6. Trigger Save Stream Download ---
       const studentName = liveProfile?.name || studentSnapshot.name || "Student";
       const cleanSession = selectedSession.replace(/\//g, "-");
       const formattedFileName = `${studentName} - ${selectedTerm} - ${cleanSession}.pdf`;
