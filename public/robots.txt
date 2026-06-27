@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Block all administrative and backend management interfaces
+Disallow: /admin/
+Disallow: /admin/dashboard/
+Disallow: /admin/dashboard/school-management/
+
+# Block all private student panels
+Disallow: /student/
+Disallow: /student/dashboard/
+
+# Block all private teacher portals
+Disallow: /teacher/
+Disallow: /teacher/dashboard/
+
+# Block standard auth screens to keep things clean
+Disallow: /login
+Disallow: /register
+
+# Your public roadmap link (update extension when domain is purchased)
+Sitemap: https://myriadacademy.com.ng/sitemap.xml
