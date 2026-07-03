@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react'; // 1. Imported useEffect
+import Swal from 'sweetalert2'; // 2. Imported SweetAlert
 import Home from './pages/Home';
 import AdminSignIn from './pages/admin/SignIn';
 import AdminSignUp from './pages/admin/SignUp';
@@ -39,6 +41,36 @@ import TeacherProtectedRoute from './components/TeacherProtectedRoute';
 import StudentProtectedRoute from './components/StudentProtectedRoute';
 
 function App() {
+  // 3. Global Network Status Listeners
+  useEffect(() => {
+    const handleOffline = () => {
+      Swal.fire({
+        title: 'Connection Lost',
+        text: 'Your device went offline. Please check your internet connection before performing any updates.',
+        icon: 'error',
+        confirmButtonColor: '#d33',
+      });
+    };
+
+    const handleOnline = () => {
+      Swal.fire({
+        title: 'Connected!',
+        text: 'You are back online.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>
@@ -49,7 +81,6 @@ function App() {
         <Route path="/admin/signup" element={<AdminSignUp />} />
         <Route path="/admin/dashboard/reset-password" element={<ResetPassword />} />
 
-        
         <Route path="/admin/dashboard" element={
           <ProtectedRoute>
             <AdminDashboard />
@@ -81,11 +112,11 @@ function App() {
         }>
           <Route index element={<TeacherHome />} />
           <Route path="my-class" element={<MyClass />} />
-           <Route path="promotion" element={<TeacherPromotion />} />
+          <Route path="promotion" element={<TeacherPromotion />} />
           <Route path="profile" element={<TeacherProfile />} />
           <Route path="change-password" element={<TeacherChangePassword />} />
           <Route path="attendance" element={<TeacherAttendance/>}/>
-          <Route path= "ResultManagement" element={<Result/>}/>
+          <Route path="ResultManagement" element={<Result/>}/>
           <Route path="Broadsheet" element={<Broadsheet/>}/>
         </Route>
 
