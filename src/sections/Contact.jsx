@@ -39,7 +39,7 @@ const Contact = () => {
   };
 
   const sendToWhatsApp = () => {
-    const phoneNumbers = ['08138251375', '08038005822'];
+    const phoneNumbers = ['08038005822'];
     const messageText = `*New Contact Form Submission*%0A%0A*Name:* ${formData.name}%0A*Email:* ${formData.email}%0A*Subject:* ${formData.subject}%0A*Message:* ${formData.message}%0A%0A_Submitted via Myriad Academy Website_`;
     
 
