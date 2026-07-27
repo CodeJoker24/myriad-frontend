@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FaArrowRight, FaSpinner } from 'react-icons/fa';
-import { supabase } from '../db'; 
+import { FaArrowRight } from 'react-icons/fa';
+import { supabase } from '../db';
 
 const Academics = () => {
   const [programs, setPrograms] = useState([]);
@@ -53,15 +53,40 @@ const Academics = () => {
           </p>
         </div>
 
+        {/* --- SHOW SKELETON (DUD) CARDS WHILE LOADING --- */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <FaSpinner className="animate-spin text-3xl text-primary" />
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((n) => (
+              <div 
+                key={n} 
+                className="bg-white rounded-2xl overflow-hidden shadow-md animate-pulse border border-gray-100"
+              >
+                {/* Fake Image Placeholder */}
+                <div className="h-64 bg-slate-200 w-full"></div>
+                
+                <div className="p-6 space-y-4">
+                  {/* Fake Title Line */}
+                  <div className="h-7 bg-slate-200 rounded-md w-3/4"></div>
+                  
+                  {/* Fake Description Lines */}
+                  <div className="space-y-2">
+                    <div className="h-4 bg-slate-200 rounded-md w-full"></div>
+                    <div className="h-4 bg-slate-200 rounded-md w-5/6"></div>
+                    <div className="h-4 bg-slate-200 rounded-md w-2/3"></div>
+                  </div>
+
+                  {/* Fake Button Line */}
+                  <div className="h-5 bg-slate-200 rounded-md w-1/3 pt-2"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : programs.length === 0 ? (
           <div className="text-center text-gray-500 py-12">
             No academic programs available at the moment.
           </div>
         ) : (
+          /* --- REAL DATA CONTENT --- */
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {programs.map((program) => (
               <div
