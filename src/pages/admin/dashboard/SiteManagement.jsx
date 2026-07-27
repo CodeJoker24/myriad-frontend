@@ -1,22 +1,20 @@
-import { useState, useEffect} from 'react';
-import { FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, FaEnvelope, FaSave, FaPlus, FaTrash, FaCamera, FaClipboardList, FaSpinner} from 'react-icons/fa';
-import { supabase } from '../../../db';
-import { logActivity } from '../../../db';
+import { useState, useEffect } from 'react';
+import { 
+  FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, 
+  FaEnvelope, FaSave, FaPlus, FaTrash, FaCamera, 
+  FaClipboardList, FaSpinner, FaGraduationCap 
+} from 'react-icons/fa';
+import { supabase, logActivity } from '../../../db';
 import Swal from 'sweetalert2';
 import imageCompression from "browser-image-compression";
+
 export const SiteManagement = () => {
   const [activeTab, setActiveTab] = useState('hero');
-  const [hero, setHero] = useState({ 
-    title: '',
-    subtitle: '',
-    button_enroll_text: '',
-    button_explore_text: '',
-    image_url: ''
-  });
 
   const menuItems = [
     { id: 'hero', name: 'Hero Header', icon: <FaImage /> },
     { id: 'about', name: 'About Mission', icon: <FaInfoCircle /> },
+    { id: 'academics', name: 'Academic Programs', icon: <FaGraduationCap /> },
     { id: 'stats', name: 'School Stats', icon: <FaChartBar /> },
     { id: 'testimonials', name: 'Testimonials', icon: <FaQuoteRight /> },
     { id: 'contact', name: 'Contact & Socials', icon: <FaEnvelope /> },
@@ -26,6 +24,7 @@ export const SiteManagement = () => {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50/50 -m-6">
       
+      {/* Sidebar Navigation */}
       <div className="w-full md:w-72 bg-[#1e293b] text-white p-6 shadow-xl z-0">
         <div className="mb-10 px-2">
           <h2 className="text-xl font-bold tracking-tight">Site Management</h2>
@@ -50,10 +49,9 @@ export const SiteManagement = () => {
         </nav>
       </div>
 
-      
+      {/* Main Content View */}
       <div className="flex-1 p-4 md:p-10 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
-          
           <div className="flex justify-between items-end mb-8 border-b pb-6 border-gray-200">
             <div>
               <h1 className="text-3xl font-bold text-slate-800 capitalize">{activeTab} Section</h1>
@@ -61,10 +59,10 @@ export const SiteManagement = () => {
             </div>
           </div>
 
-         
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {activeTab === 'hero' && <HeroUI />}
             {activeTab === 'about' && <AboutUI />}
+            {activeTab === 'academics' && <AcademicsUI />}
             {activeTab === 'stats' && <StatsUI />}
             {activeTab === 'testimonials' && <TestimonialsUI />}
             {activeTab === 'contact' && <ContactUI />}
@@ -76,7 +74,199 @@ export const SiteManagement = () => {
   );
 };
 
+/* --- ACADEMICS SECTION UI --- */
+const AcademicsUI = () => {
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    image_url: ''
+  });
 
+  const fetchPrograms = async () => {
+    setFetching(true);
+    const { data, error } = await supabase
+      .from('landing_academics')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (data) setPrograms(data);
+    setFetching(false);
+  };
+
+  useEffect(() => {
+    fetchPrograms();
+  }, []);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const options = { maxSizeMB: 0.8, maxWidthOrHeight: 1200, useWebWorker: true };
+      const compressedFile = await imageCompression(file, options);
+      
+      const filePath = `academics_${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from('site-content')
+        .upload(filePath, compressedFile, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('site-content').getPublicUrl(filePath);
+      setFormData(prev => ({ ...prev, image_url: data.publicUrl }));
+      Swal.fire('Image Uploaded!', 'Preview image is ready.', 'success');
+    } catch (error) {
+      Swal.fire('Upload Error', error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddProgram = async (e) => {
+    e.preventDefault();
+    if (!formData.image_url) {
+      return Swal.fire('Missing Image', 'Please upload an image for this program.', 'warning');
+    }
+
+    setLoading(true);
+    const { error } = await supabase.from('landing_academics').insert([formData]);
+    setLoading(false);
+
+    if (!error) {
+      await logActivity(`Added academic program: ${formData.title}`, "site");
+      setFormData({ title: '', description: '', image_url: '' });
+      fetchPrograms();
+      Swal.fire('Success!', 'New Academic Program added.', 'success');
+    } else {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
+  const handleDelete = async (id, title) => {
+    const confirm = await Swal.fire({
+      title: `Delete "${title}"?`,
+      text: "This action cannot be undone.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    setLoading(true);
+    const { error } = await supabase.from('landing_academics').delete().eq('id', id);
+    setLoading(false);
+
+    if (!error) {
+      await logActivity(`Deleted academic program: ${title}`, "site");
+      fetchPrograms();
+      Swal.fire('Deleted!', 'Program removed from site.', 'success');
+    } else {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
+  if (fetching) return <div className="text-center p-10 font-bold text-slate-400">Loading Academic Programs...</div>;
+
+  return (
+    <div className="space-y-8">
+      {/* Create Program Form */}
+      <form onSubmit={handleAddProgram} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+        <h3 className="text-xl font-bold text-slate-800">Add Academic Program</h3>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Program Title</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Early Childhood, Primary, College" 
+                className="w-full mt-1 p-3 bg-slate-50 border-none rounded-xl outline-none font-semibold"
+                value={formData.title} 
+                onChange={e => setFormData({ ...formData, title: e.target.value })} 
+                required 
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Description</label>
+              <textarea 
+                placeholder="Brief program summary..." 
+                className="w-full mt-1 p-3 bg-slate-50 border-none rounded-xl outline-none text-sm" 
+                rows="4"
+                value={formData.description} 
+                onChange={e => setFormData({ ...formData, description: e.target.value })} 
+                required 
+              />
+            </div>
+          </div>
+
+          {/* Image Upload Box */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Program Image</label>
+            <div 
+              onClick={() => document.getElementById('academic-upload').click()}
+              className="relative rounded-2xl overflow-hidden aspect-video bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-300 hover:border-primary cursor-pointer transition-all h-44"
+            >
+              {formData.image_url ? (
+                <img src={formData.image_url} className="w-full h-full object-cover" alt="Preview" />
+              ) : (
+                <div className="text-center text-slate-400">
+                  <FaCamera className="mx-auto text-2xl mb-2" />
+                  <p className="text-xs">Click to upload program photo</p>
+                </div>
+              )}
+            </div>
+            <input 
+              id="academic-upload"
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleImageUpload} 
+            />
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={loading} 
+          className="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark transition-all disabled:opacity-50"
+        >
+          {loading ? <FaSpinner className="animate-spin" /> : <><FaPlus /> Add Program</>}
+        </button>
+      </form>
+
+      {/* Program Cards List */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {programs.map((item) => (
+          <div key={item.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden relative group">
+            <div className="h-44 overflow-hidden bg-slate-100 relative">
+              <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+              <button 
+                onClick={() => handleDelete(item.id, item.title)} 
+                className="absolute top-3 right-3 p-2 bg-red-500/90 hover:bg-red-600 text-white rounded-xl shadow-md transition-all"
+              >
+                <FaTrash size={12} />
+              </button>
+            </div>
+            <div className="p-6">
+              <h4 className="text-xl font-bold text-slate-800 mb-2">{item.title}</h4>
+              <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{item.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* --- HERO SECTION UI --- */
 const HeroUI = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -88,11 +278,10 @@ const HeroUI = () => {
     image_url: ''
   });
 
-  
   useEffect(() => {
     const fetchHero = async () => {
       setFetching(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('landing_hero')
         .select('*')
         .eq('id', 1)
@@ -104,44 +293,27 @@ const HeroUI = () => {
     fetchHero();
   }, []);
 
-  
- const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
       setLoading(true);
-
-    
-      const options = {
-        maxSizeMB: 1,           
-        maxWidthOrHeight: 1920, 
-        useWebWorker: true,
-      };
-      
+      const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
       const compressedFile = await imageCompression(file, options);
-      
-    
       const filePath = `hero_main_static.png`; 
 
       const { error: uploadError } = await supabase.storage
         .from('site-content')
-        .upload(filePath, compressedFile, { 
-          upsert: true,
-          contentType: file.type,
-        });
+        .upload(filePath, compressedFile, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
-        .from('site-content')
-        .getPublicUrl(filePath);
-
+      const { data } = supabase.storage.from('site-content').getPublicUrl(filePath);
       const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
 
       setHero(prev => ({...prev, image_url: finalUrl}));
       Swal.fire('Updated!', 'New image is ready. Save to make it live.', 'success');
-
     } catch (error) {
       Swal.fire('Error', error.message, 'error');
     } finally {
@@ -149,16 +321,11 @@ const HeroUI = () => {
     }
   };
 
-
   const handleSave = async () => {
     setLoading(true);
     const { error } = await supabase
       .from('landing_hero')
-      .upsert({ 
-        id: 1, 
-        ...hero,
-        updated_at: new Date() 
-      });
+      .upsert({ id: 1, ...hero, updated_at: new Date() });
 
     setLoading(false);
     if (!error) {
@@ -173,7 +340,6 @@ const HeroUI = () => {
 
   return (
     <div className="grid lg:grid-cols-3 gap-8">
-      {/* Form Side */}
       <div className="lg:col-span-2 space-y-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
         <div className="space-y-4">
           <div>
@@ -220,7 +386,6 @@ const HeroUI = () => {
         </button>
       </div>
 
-    
       <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit">
         <label className="text-sm font-bold text-slate-700 block mb-4">Hero Image</label>
         <div 
@@ -254,7 +419,7 @@ const HeroUI = () => {
   );
 };
 
-
+/* --- STATS SECTION UI --- */
 const StatsUI = () => {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -266,11 +431,7 @@ const StatsUI = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { data } = await supabase
-        .from('landing_stats')
-        .select('*')
-        .eq('id', 1)
-        .single();
+      const { data } = await supabase.from('landing_stats').select('*').eq('id', 1).single();
       if (data) setStats(data);
     };
     fetchStats();
@@ -278,16 +439,12 @@ const StatsUI = () => {
 
   const handleSave = async () => {
     setLoading(true);
-    const { error } = await supabase
-      .from('landing_stats')
-      .upsert({ id: 1, ...stats });
-    
+    const { error } = await supabase.from('landing_stats').upsert({ id: 1, ...stats });
     setLoading(false);
     if (!error) {
       await logActivity("Updated school statistics/counters", "site");
       Swal.fire('Updated!', 'Statistics are now live.', 'success');
-    }
-    else Swal.fire('Error', error.message, 'error');
+    } else Swal.fire('Error', error.message, 'error');
   };
 
   return (
@@ -323,6 +480,7 @@ const StatsUI = () => {
   );
 };
 
+/* --- TESTIMONIALS SECTION UI --- */
 const TestimonialsUI = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -348,42 +506,35 @@ const TestimonialsUI = () => {
     }
   };
 
- const handleDelete = async (id) => {
-  const confirm = await Swal.fire({
-    title: 'Delete this testimonial?',
-    text: "This action cannot be undone.",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Yes, delete it'
-  });
+  const handleDelete = async (id) => {
+    const confirm = await Swal.fire({
+      title: 'Delete this testimonial?',
+      text: "This action cannot be undone.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it'
+    });
 
-  if (!confirm.isConfirmed) return;
+    if (!confirm.isConfirmed) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
+      const { error } = await supabase.from('landing_testimonials').delete().eq('id', id);
+      if (error) throw error;
 
-    const { error } = await supabase
-      .from('landing_testimonials')
-      .delete()
-      .eq('id', id);
+      await fetchTestimonials();
+      Swal.fire('Deleted!', 'Testimonial has been removed.', 'success');
+    } catch (error) {
+      Swal.fire('Error', error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (error) throw error;
-
-    await fetchTestimonials();
-
-    Swal.fire('Deleted!', 'Testimonial has been removed.', 'success');
-
-  } catch (error) {
-    Swal.fire('Error', error.message, 'error');
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <div className="space-y-6">
-     
       <form onSubmit={handleAdd} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 grid md:grid-cols-2 gap-4">
         <div className="space-y-4">
           <input type="text" placeholder="Parent Name" className="w-full p-3 bg-gray-50 rounded-xl outline-none" 
@@ -398,7 +549,6 @@ const TestimonialsUI = () => {
         </button>
       </form>
 
-   
       <div className="grid md:grid-cols-2 gap-4">
         {list.map((item) => (
           <div key={item.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative group">
@@ -415,7 +565,7 @@ const TestimonialsUI = () => {
   );
 };
 
-
+/* --- CONTACT SECTION UI --- */
 const ContactUI = () => {
   const [loading, setLoading] = useState(false);
   const [contact, setContact] = useState({
@@ -456,7 +606,6 @@ const ContactUI = () => {
   return (
     <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-8">
       <div className="grid md:grid-cols-2 gap-10">
-        
         <div className="space-y-4">
           <h3 className="font-bold text-slate-800">Communication & Address</h3>
           <div>
@@ -477,7 +626,6 @@ const ContactUI = () => {
           </div>
         </div>
 
-      
         <div className="space-y-4">
           <h3 className="font-bold text-slate-800">School Hours</h3>
           <div className="p-4 bg-blue-50/50 rounded-2xl space-y-3">
@@ -508,26 +656,17 @@ const ContactUI = () => {
   );
 };
 
+/* --- ADMISSIONS SECTION UI --- */
 const AdmissionsUI = () => {
   const [loading, setLoading] = useState(false);
-  const [dates, setDates] = useState({ 
-    open: '', 
-    early: '', 
-    regular: '', 
-    begin: '' 
-  });
+  const [dates, setDates] = useState({ open: '', early: '', regular: '', begin: '' });
 
   useEffect(() => {
     fetchCurrentDates();
   }, []);
 
   const fetchCurrentDates = async () => {
-    const { data } = await supabase
-      .from('admission_dates')
-      .select('*')
-      .eq('id', 1)
-      .single();
-
+    const { data } = await supabase.from('admission_dates').select('*').eq('id', 1).single();
     if (data) {
       setDates({
         open: data.applications_open || '',
@@ -612,7 +751,7 @@ const AdmissionsUI = () => {
   );
 };
 
-
+/* --- ABOUT SECTION UI --- */
 const AboutUI = () => {
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState({
@@ -639,47 +778,29 @@ const AboutUI = () => {
       await logActivity("Updated 'About Us' mission and vision content", "site");
       Swal.fire('Success', 'About content updated!', 'success');
     }
-
   };
 
-const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
       setLoading(true);
-
-      
-      const options = {
-        maxSizeMB: 0.8,         
-        maxWidthOrHeight: 1200, 
-        useWebWorker: true,
-      };
-      
+      const options = { maxSizeMB: 0.8, maxWidthOrHeight: 1200, useWebWorker: true };
       const compressedFile = await imageCompression(file, options);
-
-     
       const filePath = `about_section_static.png`; 
 
       const { error: uploadError } = await supabase.storage
         .from('site-content')
-        .upload(filePath, compressedFile, { 
-          upsert: true,
-          contentType: file.type
-        });
+        .upload(filePath, compressedFile, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
-        .from('site-content')
-        .getPublicUrl(filePath);
-
+      const { data } = supabase.storage.from('site-content').getPublicUrl(filePath);
       const finalUrl = `${data.publicUrl}?t=${new Date().getTime()}`;
 
       setContent(prev => ({ ...prev, image_url: finalUrl }));   
-      
       Swal.fire('Optimized!', 'New image compressed and ready.', 'success');
-
     } catch (error) {
       Swal.fire('Error', error.message, 'error');
     } finally {
@@ -691,7 +812,6 @@ const handleImageUpload = async (e) => {
     <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
       <h3 className="text-xl font-bold text-slate-800">Edit About Page</h3>
       
-      {/* --- NEW IMAGE SECTION --- */}
       <div>
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">About Image</label>
         <div className="mt-2 flex items-center gap-6 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -720,7 +840,6 @@ const handleImageUpload = async (e) => {
         </div>
       </div>
 
-      {/* --- TEXT SECTION --- */}
       <div className="space-y-4">
         <div>
           <label className="text-[10px] font-black text-slate-400 uppercase">About Paragraph 1</label>
