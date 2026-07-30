@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   FaImage, FaInfoCircle, FaChartBar, FaQuoteRight, 
   FaEnvelope, FaSave, FaPlus, FaTrash, FaCamera, 
-  FaClipboardList, FaSpinner, FaGraduationCap 
+  FaClipboardList, FaSpinner, FaGraduationCap, FaBullhorn
 } from 'react-icons/fa';
 import { supabase, logActivity } from '../../../db';
 import Swal from 'sweetalert2';
@@ -19,6 +19,7 @@ export const SiteManagement = () => {
     { id: 'testimonials', name: 'Testimonials', icon: <FaQuoteRight /> },
     { id: 'contact', name: 'Contact & Socials', icon: <FaEnvelope /> },
     { id: 'admissions', name: 'Admissions', icon: <FaClipboardList /> },
+     { id: 'announcements', name: 'Announcements', icon: <FaBullhorn /> },
   ];
 
   return (
@@ -67,6 +68,7 @@ export const SiteManagement = () => {
             {activeTab === 'testimonials' && <TestimonialsUI />}
             {activeTab === 'contact' && <ContactUI />}
             {activeTab === 'admissions' && <AdmissionsUI />}
+             {activeTab === 'announcements' && <AnnouncementsUI />}
           </div>  
         </div>
       </div>
@@ -750,6 +752,237 @@ const AdmissionsUI = () => {
     </div>
   );
 };
+
+/* --- ANNOUNCEMENTS SECTION UI --- */
+const AnnouncementsUI = () => {
+  const [loading, setLoading] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [fetching, setFetching] = useState(true);
+  const [formData, setFormData] = useState({
+    message: '',
+    type: 'info',
+    is_active: true
+  });
+
+  const fetchAnnouncements = async () => {
+    setFetching(true);
+    const { data, error } = await supabase
+      .from('landing_announcements')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) setAnnouncements(data);
+    setFetching(false);
+  };
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!formData.message.trim()) {
+      return Swal.fire('Error', 'Please enter a message.', 'warning');
+    }
+
+    setLoading(true);
+    const { error } = await supabase
+      .from('landing_announcements')
+      .insert([formData]);
+
+    setLoading(false);
+
+    if (!error) {
+      await logActivity(`Added announcement: ${formData.message}`, "site");
+      setFormData({ message: '', type: 'info', is_active: true });
+      fetchAnnouncements();
+      Swal.fire('Success!', 'Announcement added.', 'success');
+    } else {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
+  const handleToggle = async (id, currentStatus) => {
+    const newStatus = !currentStatus;
+    setLoading(true);
+    const { error } = await supabase
+      .from('landing_announcements')
+      .update({ is_active: newStatus })
+      .eq('id', id);
+
+    setLoading(false);
+
+    if (!error) {
+      await logActivity(`${newStatus ? 'Activated' : 'Deactivated'} announcement`, "site");
+      fetchAnnouncements();
+      Swal.fire('Updated!', `Announcement ${newStatus ? 'activated' : 'deactivated'}.`, 'success');
+    } else {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirm = await Swal.fire({
+      title: 'Delete Announcement?',
+      text: "This action cannot be undone.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from('landing_announcements')
+      .delete()
+      .eq('id', id);
+
+    setLoading(false);
+
+    if (!error) {
+      await logActivity("Deleted announcement", "site");
+      fetchAnnouncements();
+      Swal.fire('Deleted!', 'Announcement removed.', 'success');
+    } else {
+      Swal.fire('Error', error.message, 'error');
+    }
+  };
+
+  const getTypeColor = (type) => {
+    const colors = {
+      info: 'bg-blue-50 border-blue-200 text-blue-700',
+      success: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+      warning: 'bg-amber-50 border-amber-200 text-amber-700',
+      danger: 'bg-red-50 border-red-200 text-red-700',
+      primary: 'bg-indigo-50 border-indigo-200 text-indigo-700'
+    };
+    return colors[type] || colors.info;
+  };
+
+  const getTypeIcon = (type) => {
+    const icons = {
+      info: 'ℹ️',
+      success: '✅',
+      warning: '⚠️',
+      danger: '🚨',
+      primary: '📢'
+    };
+    return icons[type] || icons.info;
+  };
+
+  if (fetching) return <div className="text-center p-10 font-bold text-slate-400">Loading announcements...</div>;
+
+  return (
+    <div className="space-y-6">
+      {/* Add Announcement Form */}
+      <form onSubmit={handleAdd} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+        <h3 className="text-xl font-bold text-slate-800">Add New Announcement</h3>
+        
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="md:col-span-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Message</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Admissions are now open for 2025/2026 session!"
+              className="w-full mt-1 p-3 bg-slate-50 border-none rounded-xl outline-none font-medium"
+              value={formData.message}
+              onChange={e => setFormData({ ...formData, message: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</label>
+            <select 
+              className="w-full mt-1 p-3 bg-slate-50 border-none rounded-xl outline-none font-medium cursor-pointer"
+              value={formData.type}
+              onChange={e => setFormData({ ...formData, type: e.target.value })}
+            >
+              <option value="info">ℹ️ Info (Blue)</option>
+              <option value="success">✅ Success (Green)</option>
+              <option value="warning">⚠️ Warning (Yellow)</option>
+              <option value="danger">🚨 Danger (Red)</option>
+              <option value="primary">📢 Primary (Indigo)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={formData.is_active}
+              onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+              className="w-4 h-4 accent-primary rounded"
+            />
+            <span className="text-xs font-medium text-slate-600">Active (visible on site)</span>
+          </label>
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={loading}
+          className="w-full py-4 bg-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dark transition-all disabled:opacity-50"
+        >
+          {loading ? <FaSpinner className="animate-spin" /> : <><FaPlus /> Add Announcement</>}
+        </button>
+      </form>
+
+      {/* Announcements List */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider">Active & Inactive Announcements</h3>
+        
+        {announcements.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 bg-white rounded-3xl border border-gray-100">
+            <p>No announcements added yet.</p>
+          </div>
+        ) : (
+          announcements.map((item) => (
+            <div 
+              key={item.id} 
+              className={`flex items-center justify-between p-4 rounded-2xl border ${getTypeColor(item.type)} ${!item.is_active ? 'opacity-50' : ''}`}
+            >
+              <div className="flex items-center gap-3 flex-1">
+                <span className="text-lg">{getTypeIcon(item.type)}</span>
+                <div>
+                  <p className={`font-semibold ${!item.is_active ? 'line-through' : ''}`}>{item.message}</p>
+                  <p className="text-[10px] opacity-70">
+                    {item.is_active ? '🟢 Active' : '🔴 Inactive'} • 
+                    {new Date(item.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleToggle(item.id, item.is_active)}
+                  disabled={loading}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    item.is_active 
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                      : 'bg-green-100 text-green-600 hover:bg-green-200'
+                  }`}
+                >
+                  {item.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+                <button 
+                  onClick={() => handleDelete(item.id)}
+                  disabled={loading}
+                  className="p-2 hover:bg-white/50 rounded-xl text-red-500 transition"
+                >
+                  <FaTrash size={14} />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 
 /* --- ABOUT SECTION UI --- */
 const AboutUI = () => {

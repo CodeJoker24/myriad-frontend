@@ -4,7 +4,8 @@ import {
   FaSpinner, FaSchool, FaDownload, FaChevronDown, FaLayerGroup,
   FaSearch, FaUserGraduate, FaBookOpen, FaTrophy,
   FaChartLine, FaPercentage, FaArrowUp, FaArrowDown, FaEye,
-  FaTable, FaThList, FaChevronLeft, FaChevronRight
+  FaTable, FaThList, FaChevronLeft, FaChevronRight, FaEyeSlash,
+  FaToggleOn, FaToggleOff
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 
@@ -31,6 +32,9 @@ export const Results = () => {
   const [mobileView, setMobileView] = useState(false);
   const [expandedStudent, setExpandedStudent] = useState(null);
   const [showStats, setShowStats] = useState(true);
+  
+  const [isResultsPublished, setIsResultsPublished] = useState(false);
+  const [publicationLoading, setPublicationLoading] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -45,6 +49,7 @@ export const Results = () => {
 
   useEffect(() => {
     fetchAdminContext();
+    loadPublicationStatus();
   }, []);
 
   useEffect(() => {
@@ -58,6 +63,57 @@ export const Results = () => {
       setSubjects([]);
     }
   }, [selectedClass]);
+
+  const loadPublicationStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('result_publication_settings')
+        .select('is_published')
+        .limit(1)
+        .single();
+      
+      if (error) throw error;
+      setIsResultsPublished(data?.is_published || false);
+    } catch (err) {
+      console.error("Error loading publication status:", err);
+    }
+  };
+
+  const toggleResultsPublication = async () => {
+    setPublicationLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const newStatus = !isResultsPublished;
+      
+      const { error } = await supabase
+        .from('result_publication_settings')
+        .update({ 
+          is_published: newStatus,
+          updated_by: user?.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (error) throw error;
+      
+      setIsResultsPublished(newStatus);
+      
+      Swal.fire({
+        icon: newStatus ? 'success' : 'info',
+        title: newStatus ? '📢 Results Published!' : '🔒 Results Unpublished',
+        text: newStatus 
+          ? 'All students can now view their results.' 
+          : 'Students will see a message that results are not yet available.',
+        timer: 2500,
+        showConfirmButton: false
+      });
+    } catch (err) {
+      Swal.fire('Error', 'Failed to update publication status.', 'error');
+      console.error(err);
+    } finally {
+      setPublicationLoading(false);
+    }
+  };
 
   const fetchAdminContext = async () => {
     try {
@@ -371,14 +427,39 @@ export const Results = () => {
                 <p className="text-gray-300 text-sm mt-1">Audit scores across all class cohorts</p>
               </div>
               
-              <div className="flex gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3">
-                <div className="text-center border-r border-white/10 pr-4">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Session</p>
-                  <p className="text-sm font-black text-white">{activeSession}</p>
-                </div>
-                <div className="text-center pl-2">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Term</p>
-                  <p className="text-sm font-black text-indigo-400">{activeTerm}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Publication Toggle Button - Moved to header */}
+                <button 
+                  onClick={toggleResultsPublication}
+                  disabled={publicationLoading}
+                  className={`font-bold text-xs px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 ${
+                    isResultsPublished 
+                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
+                      : 'bg-amber-500 hover:bg-amber-600 text-white'
+                  } disabled:opacity-50`}
+                >
+                  {publicationLoading ? (
+                    <FaSpinner className="animate-spin text-xs" />
+                  ) : isResultsPublished ? (
+                    <>
+                      <FaToggleOn className="text-sm" /> Published
+                    </>
+                  ) : (
+                    <>
+                      <FaToggleOff className="text-sm" /> Private
+                    </>
+                  )}
+                </button>
+                
+                <div className="flex gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-3">
+                  <div className="text-center border-r border-white/10 pr-4">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Session</p>
+                    <p className="text-sm font-black text-white">{activeSession}</p>
+                  </div>
+                  <div className="text-center pl-2">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Term</p>
+                    <p className="text-sm font-black text-indigo-400">{activeTerm}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -405,7 +486,7 @@ export const Results = () => {
             </div>
 
             {selectedClass && (
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
+              <div className="flex flex-wrap sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
                 <div className="inline-flex rounded-lg p-1 bg-gray-100">
                   <button 
                     onClick={() => setScoreTypeView('total')}
@@ -421,16 +502,16 @@ export const Results = () => {
                   </button>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="text-xs text-gray-600 font-bold bg-gray-100 px-3 py-2 rounded-lg">
-                    📚 Enrolled: {broadsheetData.length} Students
+                    📚 {broadsheetData.length} Students
                   </span>
                   <button 
                     onClick={exportToCSV}
                     disabled={broadsheetData.length === 0}
                     className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <FaDownload /> Export CSV
+                    <FaDownload /> CSV
                   </button>
                 </div>
               </div>
@@ -582,7 +663,7 @@ export const Results = () => {
                               </React.Fragment>
                             ))}
                             <th colSpan="3"></th>
-                           </tr>
+                          </tr>
                         )}
                       </thead>
                       <tbody className="divide-y divide-gray-100">
